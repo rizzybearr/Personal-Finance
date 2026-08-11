@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1"/>
+<title>Ledger</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="theme-color" content="#0B4F4A">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{
+  --paper:#FAF8F4;
+  --ink:#171A1C;
+  --ink-soft:#6B7280;
+  --line:#E8E4DB;
+  --teal:#0B4F4A;
+  --teal-soft:#E4EEEC;
+  --amber:#B8860B;
+  --amber-soft:#FBF1DC;
+  --rose:#B3261E;
+  --rose-soft:#FBEAE9;
+  --moss:#3F6B3A;
+  --moss-soft:#EAF1E7;
+}
+*{ -webkit-tap-highlight-color: transparent; box-sizing:border-box; }
+html,body{ background:var(--paper); }
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.font-num{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing:-0.01em; }
+.tab-active{ color:var(--teal); font-weight:600; }
+.tab-active .tab-underline{ opacity:1; transform:scaleX(1); }
+.tab-underline{ opacity:0; transform:scaleX(0.4); transition:all .2s ease; }
+.fade-in { animation: fadeIn 0.25s ease-out; }
+@keyframes fadeIn{ from {opacity:0;transform:translateY(4px);} to {opacity:1;transform:translateY(0);} }
+.item-card:active { transform: scale(0.985); transition: transform 0.12s ease; }
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(11,79,74,0.12);
+}
+.tag { font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight:600; letter-spacing:.01em; }
+.card{ background:#fff; border:1px solid var(--line); border-radius:20px; }
+.bar-fill{ transition: height .5s cubic-bezier(.16,1,.3,1), background-color .3s ease; }
+.ring-fg{ transition: stroke-dashoffset .6s cubic-bezier(.16,1,.3,1), stroke .3s ease; }
+::selection{ background: var(--teal-soft); }
+</style>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#0B4F4A',
+        expense: '#B3261E',
+        income: '#3F6B3A',
+        reimbNone: '#8A8578',
+        reimbPending: '#B8860B',
+        reimbDone: '#3F6B3A',
+      },
+    }
+  }
+}
+</script>
+</head>
+<body class="max-w-lg mx-auto min-h-screen">
+<div class="sticky top-0 z-10 backdrop-blur-md" style="background:rgba(250,248,244,0.92); border-bottom:1px solid var(--line);">
+  <div class="flex justify-between items-center px-4 pt-3">
+    <h1 class="text-[17px] font-bold tracking-tight" style="color:var(--ink);">Ledger</h1>
+    <div class="flex items-center gap-2">
+      <select id="currencySelect" class="border-0 bg-transparent text-sm text-slate-500">
+        <option value="CNY">¥ CNY</option>
+        <option value="USD">$ USD</option>
+        <option value="EUR">€ EUR</option>
+        <option value="GBP">£ GBP</option>
+      </select>
+      <select id="langSelect" class="border-0 bg-transparent text-sm text-slate-500">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </div>
+  <div class="flex text-[15px]">
+    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500" data-page="add" data-i18n="tabBill">Record</button>
+    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500" data-page="list" data-i18n="tabList">Bills</button>
+    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500" data-page="stat" data-i18n="tabStat">Stats</button>
+  </div>
+  <div class="flex px-4">
+    <div class="flex-1 flex justify-center"><div class="tab-underline h-[2.5px] w-10 rounded-full" style="background:var(--teal);"></div></div>
+    <div class="flex-1 flex justify-center"><div class="tab-underline h-[2.5px] w-10 rounded-full" style="background:var(--teal);"></div></div>
+    <div class="flex-1 flex justify-center"><div class="tab-underline h-[2.5px] w-10 rounded-full" style="background:var(--teal);"></div></div>
+  </div>
+</div>
+
+<!-- 记账页面 / Home + Record -->
+<div id="page-add" class="p-4 fade-in space-y-4">
+
+  <!-- Budget dashboard -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="budgetTitle">Monthly Budget</p>
+      <button onclick="openBudgetEdit()" class="text-[13px] font-medium" style="color:var(--teal);" data-i18n="btnEditBudget">Edit</button>
+    </div>
+    <div class="flex items-center gap-5">
+      <svg width="88" height="88" viewBox="0 0 88 88" class="shrink-0">
+        <circle cx="44" cy="44" r="38" fill="none" stroke="var(--line)" stroke-width="9"/>
+        <circle id="budgetRing" class="ring-fg" cx="44" cy="44" r="38" fill="none" stroke="var(--teal)" stroke-width="9"
+          stroke-linecap="round" transform="rotate(-90 44 44)" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+        <text id="budgetPct" x="44" y="49" text-anchor="middle" font-size="18" font-weight="700" fill="#171A1C" class="font-num">0%</text>
+      </svg>
+      <div class="flex-1 space-y-2">
+        <div class="flex justify-between items-baseline">
+          <span class="text-[13px] text-slate-500" data-i18n="lblSpent">Spent</span>
+          <span id="dashSpent" class="font-num font-semibold text-[15px]">¥0.00</span>
+        </div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-[13px] text-slate-500" data-i18n="lblBudget">Budget</span>
+          <span id="dashBudget" class="font-num text-[15px] text-slate-600">¥0.00</span>
+        </div>
+        <div class="h-px" style="background:var(--line);"></div>
+        <div class="flex justify-between items-baseline">
+          <span class="text-[13px] font-medium" data-i18n="lblRemaining">Remaining</span>
+          <span id="dashRemaining" class="font-num font-bold text-[17px]">¥0.00</span>
+        </div>
+      </div>
+    </div>
+    <p class="text-[11px] text-slate-400 mt-3" data-i18n="currencyNote">Currency symbol only — amounts are not converted.</p>
+  </div>
+
+  <!-- Last 7 days -->
+  <div class="card p-5">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-4" data-i18n="last7Title">Last 7 Days</p>
+    <div id="last7Chart" class="flex items-end justify-between gap-2 h-24"></div>
+  </div>
+
+  <!-- Recurring entries -->
+  <div class="card p-5">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="recurringTitle">Monthly Repeats</p>
+    <div id="recurringList" class="space-y-2"></div>
+  </div>
+
+  <!-- Budget edit inline -->
+  <div id="budgetEditRow" class="card p-4 hidden">
+    <label class="text-slate-500 text-[13px] block mb-1.5" data-i18n="labelBudget">Monthly budget</label>
+    <div class="flex gap-2">
+      <input type="number" step="0.01" id="budgetInput" placeholder="0.00" class="flex-1 border border-slate-200 rounded-xl p-2.5">
+      <button onclick="saveBudget()" class="px-4 rounded-xl text-white font-medium" style="background:var(--teal);" data-i18n="btnSave2">Save</button>
+    </div>
+  </div>
+
+  <!-- Add entry form -->
+  <div class="card p-5 space-y-4">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="newEntry">New Entry</p>
+    <div>
+      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelDate">Date</label>
+      <input type="date" id="date" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
+    </div>
+    <div>
+      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelType">Type</label>
+      <select id="type" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
+        <option value="exp" data-i18n="optExp">Expense</option>
+        <option value="inc" data-i18n="optInc">Income</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelCat">Category</label>
+      <select id="category" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all"></select>
+    </div>
+    <div id="reimbRow">
+      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelReimb">Reimbursement</label>
+      <select id="reimbStatus" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
+        <option value="none" data-i18n="reimbNone">No Reimbursement</option>
+        <option value="pending" data-i18n="reimbPending">Pending</option>
+        <option value="done" data-i18n="reimbDone">Reimbursed</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelAmount">Amount</label>
+      <input type="number" step="0.01" id="amount" placeholder="0.00" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all font-num">
+    </div>
+    <div>
+      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelNote">Note</label>
+      <input type="text" data-i18n-placeholder="phNote" placeholder="Optional note" id="note" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
+    </div>
+    <label class="flex items-center gap-2 text-sm text-slate-500">
+      <input type="checkbox" id="repeatMonthly" class="w-4 h-4 rounded" style="accent-color:var(--teal);">
+      <span data-i18n="labelRepeat">Repeat monthly</span>
+    </label>
+    <button onclick="saveBill()" class="w-full text-white py-3.5 rounded-xl font-medium shadow-sm active:scale-[0.99] transition-all" style="background:var(--teal);" data-i18n="btnSave">Save</button>
+  </div>
+</div>
+
+<!-- 账单列表 -->
+<div id="page-list" class="p-4 hidden fade-in">
+  <div class="flex gap-3 mb-4">
+    <button onclick="exportCSV()" class="flex-1 py-2.5 rounded-xl shadow-sm text-white font-medium" style="background:var(--moss);" data-i18n="btnExport">Export CSV</button>
+    <label class="flex-1 py-2.5 rounded-xl text-center cursor-pointer shadow-sm text-white font-medium" style="background:#8A8578;" data-i18n="btnImport">
+      Import CSV
+      <input type="file" accept=".csv" id="fileImport" class="hidden">
+    </label>
+  </div>
+  <p id="backupNote" class="text-[12px] text-slate-400 mb-3"></p>
+  <div id="billList" class="space-y-3"></div>
+  <div id="emptyList" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="emptyList">No records yet. Add your first entry on the Record tab.</div>
+</div>
+
+<!-- 统计页面 -->
+<div id="page-stat" class="p-4 hidden fade-in">
+  <div class="card p-5 mb-4 space-y-2">
+    <p class="text-center text-[15px] font-semibold mb-3" data-i18n="monthSummary">This Month Summary</p>
+    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalExp">Total Expense</span>：<span id="sumExp" class="text-expense font-bold text-xl font-num">0.00</span></p>
+    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="reimbursedAmt">Reimbursed</span>：<span id="sumReimbDone" class="text-reimbDone font-bold text-xl font-num">0.00</span></p>
+    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="selfPay">Self Paid</span>：<span id="sumSelfPay" style="color:var(--teal);" class="font-bold text-xl font-num">0.00</span></p>
+    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalInc">Total Income</span>：<span id="sumInc" class="text-income font-bold text-xl font-num">0.00</span></p>
+  </div>
+  <div class="card p-5 mb-4">
+    <canvas id="pieChartExp"></canvas>
+  </div>
+  <div class="card p-5">
+    <canvas id="pieChartReimb"></canvas>
+  </div>
+</div>
+
+<!--弹窗-->
+<div id="editModal" class="fixed inset-0 bg-black/45 hidden flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3.5 fade-in">
+    <input type="hidden" id="editId"/>
+    <input type="date" id="e-date" class="w-full border border-slate-200 rounded-xl p-2.5">
+    <select id="e-type" class="w-full border border-slate-200 rounded-xl p-2.5">
+      <option value="exp" data-i18n="optExp">Expense</option>
+      <option value="inc" data-i18n="optInc">Income</option>
+    </select>
+    <select id="e-category" class="w-full border border-slate-200 rounded-xl p-2.5"></select>
+    <div id="eReimbRow">
+      <select id="e-reimbStatus" class="w-full border border-slate-200 rounded-xl p-2.5">
+        <option value="none" data-i18n="reimbNone">No Reimbursement</option>
+        <option value="pending" data-i18n="reimbPending">Pending</option>
+        <option value="done" data-i18n="reimbDone">Reimbursed</option>
+      </select>
+    </div>
+    <input type="number" step="0.01" id="e-amount" class="w-full border border-slate-200 rounded-xl p-2.5 font-num">
+    <input type="text" data-i18n-placeholder="phNote" placeholder="Note" id="e-note" class="w-full border border-slate-200 rounded-xl p-2.5">
+    <div class="flex gap-3 pt-1">
+      <button onclick="closeModal()" class="flex-1 py-2.5 bg-slate-200 rounded-xl" data-i18n="btnCancel">Cancel</button>
+      <button onclick="updateBill()" class="flex-1 py-2.5 text-white rounded-xl" style="background:var(--teal);" data-i18n="btnUpdate">Update</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const i18nTexts = {
+  zh:{
+    tabBill:"记账",tabList:"账单",tabStat:"统计",
+    labelDate:"日期",labelType:"收支类型",labelCat:"类别",
+    labelReimb:"报销状态",
+    labelAmount:"金额",labelNote:"备注",
+    phNote:"可选备注",
+    optExp:"支出",optInc:"收入",
+    reimbNone:"不报销",reimbPending:"待报销",reimbDone:"已报销",
+    btnSave:"保存记录",btnExport:"导出CSV",btnImport:"导入CSV",
+    btnCancel:"取消",btnUpdate:"保存修改",
+    monthSummary:"本月汇总",totalExp:"总支出",totalInc:"总收入",
+    reimbursedAmt:"已报销金额",selfPay:"个人实际支出",
+    alertEmpty:"请填写日期和有效金额",
+    alertSaved:"保存成功",
+    confirmDel:"确定删除这条记录？",
+    alertImportOk:"导入完成！切换到账单列表查看",
+    titleExpCatPie:"支出分类占比",
+    titleReimbPie:"报销分布",
+    budgetTitle:"本月预算", btnEditBudget:"编辑", lblSpent:"已花费", lblBudget:"预算",
+    lblRemaining:"剩余", labelBudget:"每月预算", btnSave2:"保存",
+    newEntry:"新增记录", last7Title:"最近7天", emptyList:"暂无记录，去记账页添加第一笔吧",
+    alertBudgetSaved:"预算已保存",
+    currencyNote:"仅切换货币符号，不进行汇率换算。",
+    labelRepeat:"每月重复", recurringTitle:"每月重复项目", noRecurring:"暂无重复项目",
+    confirmDelRecurring:"停止这项每月重复？",
+    backupNote:"上次备份：", backupNever:"从未备份", backupToday:"今天",
+    backupDays:"天前", backupWarn:"建议导出备份",
+    catExp:["餐饮","旅行","猫咪","水电煤","交通","住房","购物","娱乐","医疗","教育","通讯","其他"],
+    catInc:["工资","奖金","理财","兼职","红包","其他收入"]
+  },
+  en:{
+    tabBill:"Record",tabList:"Bills",tabStat:"Stats",
+    labelDate:"Date",labelType:"Type",labelCat:"Category",
+    labelReimb:"Reimbursement",
+    labelAmount:"Amount",labelNote:"Note",
+    phNote:"Optional note",
+    optExp:"Expense",optInc:"Income",
+    reimbNone:"No Reimbursement",reimbPending:"Pending",reimbDone:"Reimbursed",
+    btnSave:"Save",btnExport:"Export CSV",btnImport:"Import CSV",
+    btnCancel:"Cancel",btnUpdate:"Update",
+    monthSummary:"This Month Summary",totalExp:"Total Expense",totalInc:"Total Income",
+    reimbursedAmt:"Reimbursed",selfPay:"Self Paid",
+    alertEmpty:"Please fill date and valid amount",
+    alertSaved:"Saved successfully",
+    confirmDel:"Delete this record?",
+    alertImportOk:"Import finished! Switch to bills list",
+    titleExpCatPie:"Expense Category Breakdown",
+    titleReimbPie:"Reimbursement Status",
+    budgetTitle:"Monthly Budget", btnEditBudget:"Edit", lblSpent:"Spent", lblBudget:"Budget",
+    lblRemaining:"Remaining", labelBudget:"Monthly budget", btnSave2:"Save",
+    newEntry:"New Entry", last7Title:"Last 7 Days", emptyList:"No records yet. Add your first entry on the Record tab.",
+    alertBudgetSaved:"Budget saved",
+    currencyNote:"Currency symbol only — amounts are not converted.",
+    labelRepeat:"Repeat monthly", recurringTitle:"Monthly Repeats", noRecurring:"No repeating entries yet",
+    confirmDelRecurring:"Stop this monthly repeat?",
+    backupNote:"Last backup: ", backupNever:"never", backupToday:"today",
+    backupDays:" days ago", backupWarn:"— consider exporting a backup",
+    catExp:["Food","Travel","Pet Cat","Utility","Transportation","Housing","Shopping","Entertainment","Medical","Education","Telecom","Other"],
+    catInc:["Salary","Bonus","Investment","Part-time","Gift","Other Income"]
+  }
+};
+
+let currentLang = localStorage.getItem("appLang") || "en";
+let bills = JSON.parse(localStorage.getItem("myBills")) || [];
+let monthlyBudget = parseFloat(localStorage.getItem("myBudget")) || 0;
+let currentCurrency = localStorage.getItem("myCurrency") || "CNY";
+let recurring = JSON.parse(localStorage.getItem("myRecurring")) || [];
+const currencySymbols = { CNY:"¥", USD:"$", EUR:"€", GBP:"£" };
+function sym(){ return currencySymbols[currentCurrency] || "¥"; }
+
+document.getElementById("currencySelect").value = currentCurrency;
+document.getElementById("currencySelect").onchange = function(){
+  currentCurrency = this.value;
+  localStorage.setItem("myCurrency", currentCurrency);
+  renderDashboard();
+  renderList();
+};
+
+function setLanguage(lang){
+  currentLang = lang;
+  localStorage.setItem("appLang", lang);
+  const dict = i18nTexts[lang];
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.getAttribute("data-i18n");
+    if(dict[key]) el.innerText = dict[key];
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
+    const key = el.getAttribute("data-i18n-placeholder");
+    if(dict[key]) el.placeholder = dict[key];
+  })
+  document.documentElement.lang = lang;
+  refreshCategory();
+  renderList();
+  renderStat();
+  renderDashboard();
+  renderRecurring();
+  renderBackupNote();
+}
+
+function getCatList(type){
+  const dict = i18nTexts[currentLang];
+  return type === "exp" ? dict.catExp : dict.catInc;
+}
+
+function renderCategorySelect(selectEl, type, selectedVal=""){
+  const list = getCatList(type);
+  let html = "";
+  list.forEach(item=>{
+    html += `<option value="${item}" ${item===selectedVal?"selected":""}>${item}</option>`;
+  })
+  selectEl.innerHTML = html;
+}
+
+function refreshCategory(){
+  const typeVal = document.getElementById("type").value;
+  renderCategorySelect(document.getElementById("category"), typeVal);
+}
+
+function toggleReimbUI(typeVal){
+  const show = typeVal === "exp";
+  document.getElementById("reimbRow").style.display = show ? "block" : "none";
+  document.getElementById("eReimbRow").style.display = show ? "block" : "none";
+}
+
+document.getElementById("type").onchange = function(){
+  renderCategorySelect(document.getElementById("category"), this.value);
+  toggleReimbUI(this.value);
+}
+document.getElementById("e-type").onchange = function(){
+  renderCategorySelect(document.getElementById("e-category"), this.value);
+  toggleReimbUI(this.value);
+}
+
+document.getElementById("langSelect").value = currentLang;
+document.getElementById("langSelect").onchange = function(){
+  setLanguage(this.value);
+}
+
+document.querySelectorAll("[data-page]").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll("[data-page]").forEach(b=>{ b.classList.remove("tab-active"); });
+    btn.classList.add("tab-active");
+    const target = btn.dataset.page;
+    document.querySelectorAll("[id^='page-']").forEach(p=>p.classList.add("hidden"));
+    document.getElementById("page-"+target).classList.remove("hidden");
+    if(target==="list"){ renderList(); renderBackupNote(); }
+    if(target==="stat") renderStat();
+    if(target==="add"){ renderDashboard(); renderRecurring(); }
+  }
+})
+document.getElementById("date").valueAsDate = new Date();
+applyRecurring();
+setLanguage(currentLang);
+toggleReimbUI(document.getElementById("type").value);
+document.querySelector('[data-page="add"]').classList.add("tab-active");
+
+function saveBill(){
+  const dict = i18nTexts[currentLang];
+  const d = document.getElementById("date").value;
+  const t = document.getElementById("type").value;
+  const c = document.getElementById("category").value;
+  const a = parseFloat(document.getElementById("amount").value);
+  const n = document.getElementById("note").value;
+  const reimb = document.getElementById("reimbStatus").value;
+  if(!d || !a || a<=0) return alert(dict.alertEmpty);
+
+  const repeat = document.getElementById("repeatMonthly").checked;
+  let recurringId = null;
+  if(repeat){
+    recurringId = "r"+Date.now();
+    recurring.push({
+      id: recurringId,
+      type:t, category:c, amount:a, note:n,
+      reimb: t==="exp" ? reimb : null,
+      day: new Date(d).getDate()
+    });
+    localStorage.setItem("myRecurring", JSON.stringify(recurring));
+  }
+
+  bills.unshift({
+    id:Date.now(),
+    date:d,
+    type:t,
+    category:c,
+    amount:a,
+    note:n,
+    reimb: t==="exp" ? reimb : null,
+    recurringId
+  });
+  saveLocal();
+  document.getElementById("amount").value="";
+  document.getElementById("note").value="";
+  document.getElementById("repeatMonthly").checked = false;
+  renderDashboard();
+}
+
+// Auto-generate this month's instance of each recurring template, once
+function applyRecurring(){
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  let changed = false;
+  recurring.forEach(r=>{
+    const already = bills.some(b=> b.recurringId===r.id &&
+      new Date(b.date).getFullYear()===y && new Date(b.date).getMonth()===m);
+    if(already) return;
+    const day = Math.min(r.day, daysInMonth);
+    const dt = new Date(y, m, day);
+    if(dt > now) return; // wait until that day arrives
+    const dateStr = dt.toISOString().slice(0,10);
+    bills.unshift({
+      id: Date.now()+Math.random(),
+      date: dateStr,
+      type: r.type,
+      category: r.category,
+      amount: r.amount,
+      note: r.note,
+      reimb: r.reimb,
+      recurringId: r.id
+    });
+    changed = true;
+  });
+  if(changed) saveLocal();
+}
+
+function renderRecurring(){
+  const dict = i18nTexts[currentLang];
+  const wrap = document.getElementById("recurringList");
+  wrap.innerHTML = "";
+  if(recurring.length===0){
+    wrap.innerHTML = `<p class="text-sm text-slate-400">${dict.noRecurring}</p>`;
+    return;
+  }
+  recurring.forEach(r=>{
+    const row = document.createElement("div");
+    row.className = "flex justify-between items-center py-1.5";
+    row.innerHTML = `
+      <div class="text-sm">
+        <span class="font-medium">${r.category}</span>
+        <span class="text-slate-400"> · ${dict[r.type==='exp'?'optExp':'optInc']} · ${currentLang==='zh'?'每月'+r.day+'日':'day '+r.day}</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="font-num text-sm ${r.type==='exp'?'text-expense':'text-income'}">${r.type==='exp'?'-':'+'}${sym()}${r.amount.toFixed(2)}</span>
+        <button onclick="delRecurring('${r.id}')" class="text-expense text-sm">Del</button>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function delRecurring(id){
+  const dict = i18nTexts[currentLang];
+  if(!confirm(dict.confirmDelRecurring)) return;
+  recurring = recurring.filter(r=>r.id!==id);
+  localStorage.setItem("myRecurring", JSON.stringify(recurring));
+  renderRecurring();
+}
+
+function renderBackupNote(){
+  const dict = i18nTexts[currentLang];
+  const el = document.getElementById("backupNote");
+  const last = localStorage.getItem("lastExportDate");
+  if(!last){
+    el.innerText = dict.backupNote + dict.backupNever;
+    el.style.color = "";
+    return;
+  }
+  const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  let when = days<=0 ? dict.backupToday : days + dict.backupDays;
+  el.innerText = dict.backupNote + when + (days>=7 ? " " + dict.backupWarn : "");
+  el.style.color = days>=7 ? "var(--amber)" : "";
+}
+
+function saveLocal(){
+  localStorage.setItem("myBills",JSON.stringify(bills));
+}
+
+function openBudgetEdit(){
+  const row = document.getElementById("budgetEditRow");
+  row.classList.toggle("hidden");
+  document.getElementById("budgetInput").value = monthlyBudget || "";
+}
+function saveBudget(){
+  const dict = i18nTexts[currentLang];
+  const v = parseFloat(document.getElementById("budgetInput").value) || 0;
+  monthlyBudget = v;
+  localStorage.setItem("myBudget", v);
+  document.getElementById("budgetEditRow").classList.add("hidden");
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const now = new Date();
+  const curMonth = now.getMonth();
+  const curYear = now.getFullYear();
+  let sumExp = 0;
+  bills.forEach(b=>{
+    const dt = new Date(b.date);
+    if(b.type==="exp" && dt.getFullYear()===curYear && dt.getMonth()===curMonth){
+      sumExp += b.amount;
+    }
+  });
+  const remaining = monthlyBudget - sumExp;
+  const pct = monthlyBudget > 0 ? Math.min(100, Math.round((sumExp/monthlyBudget)*100)) : 0;
+
+  document.getElementById("dashSpent").innerText = sym() + sumExp.toFixed(2);
+  document.getElementById("dashBudget").innerText = sym() + monthlyBudget.toFixed(2);
+  const remEl = document.getElementById("dashRemaining");
+  remEl.innerText = sym() + remaining.toFixed(2);
+  remEl.style.color = remaining < 0 ? "var(--rose)" : "var(--ink)";
+
+  const circumference = 238.76;
+  const offset = circumference - (pct/100)*circumference;
+  const ring = document.getElementById("budgetRing");
+  ring.setAttribute("stroke-dashoffset", monthlyBudget > 0 ? offset : circumference);
+  ring.setAttribute("stroke", pct >= 100 ? "var(--rose)" : pct >= 80 ? "var(--amber)" : "var(--teal)");
+  document.getElementById("budgetPct").innerText = pct + "%";
+
+  // Last 7 days
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const label = d.toLocaleDateString(currentLang==="zh"?"zh-CN":"en-US",{weekday:"short"}).slice(0,2);
+    const total = bills.filter(b=>b.type==="exp" && b.date===key).reduce((s,b)=>s+b.amount,0);
+    days.push({label, total, isToday: i===0});
+  }
+  const maxVal = Math.max(...days.map(d=>d.total), 1);
+  const wrap = document.getElementById("last7Chart");
+  wrap.innerHTML = "";
+  days.forEach(d=>{
+    const h = Math.max(4, Math.round((d.total/maxVal)*72));
+    const col = document.createElement("div");
+    col.className = "flex-1 flex flex-col items-center justify-end gap-1.5 h-full";
+    col.innerHTML = `
+      <span class="text-[10px] font-num text-slate-400">${d.total>0? d.total.toFixed(0):''}</span>
+      <div class="w-full rounded-t-md bar-fill" style="height:${h}px; background:${d.isToday? 'var(--teal)':'var(--teal-soft)'};"></div>
+      <span class="text-[11px] ${d.isToday?'font-semibold':'text-slate-400'}" style="color:${d.isToday?'var(--teal)':''}">${d.label}</span>
+    `;
+    wrap.appendChild(col);
+  });
+}
+
+function renderList(){
+  const dict = i18nTexts[currentLang];
+  const wrap = document.getElementById("billList");
+  wrap.innerHTML="";
+  document.getElementById("emptyList").classList.toggle("hidden", bills.length>0);
+  bills.forEach(item=>{
+    const div = document.createElement("div");
+    div.className="card p-4 flex justify-between items-center item-card transition-transform";
+    let tagHtml = "";
+    if(item.type==="exp"){
+      if(item.reimb==="pending") tagHtml = `<span class="tag" style="background:var(--amber-soft); color:var(--amber);">${dict.reimbPending}</span>`;
+      if(item.reimb==="done") tagHtml = `<span class="tag" style="background:var(--moss-soft); color:var(--moss);">${dict.reimbDone}</span>`;
+    }
+    div.innerHTML=`
+      <div>
+        <div class="font-medium">${item.date} · ${item.category}</div>
+        <div class="flex gap-2 items-center text-sm text-slate-400 mt-0.5">
+          ${item.note||""} ${tagHtml}
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="${item.type==='exp'?'text-expense':'text-income'} font-semibold text-lg font-num">
+          ${item.type==='exp'?'-':'+'}${sym()}${item.amount.toFixed(2)}
+        </div>
+        <div class="flex gap-3 mt-1.5 justify-end">
+          <button onclick="openEdit(${item.id})" class="text-sm" style="color:var(--teal);">Edit</button>
+          <button onclick="del(${item.id})" class="text-expense text-sm">Del</button>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(div);
+  })
+}
+
+function del(id){
+  const dict = i18nTexts[currentLang];
+  if(!confirm(dict.confirmDel))return;
+  bills = bills.filter(x=>x.id!==id);
+  saveLocal();renderList();renderDashboard();
+}
+
+function openEdit(id){
+  const item = bills.find(x=>x.id===id);
+  document.getElementById("editId").value=id;
+  document.getElementById("e-date").value=item.date;
+  document.getElementById("e-type").value=item.type;
+  renderCategorySelect(document.getElementById("e-category"), item.type, item.category);
+  toggleReimbUI(item.type);
+  if(item.type==="exp"){
+    document.getElementById("e-reimbStatus").value = item.reimb || "none";
+  }
+  document.getElementById("e-amount").value=item.amount;
+  document.getElementById("e-note").value=item.note;
+  document.getElementById("editModal").classList.remove("hidden");
+}
+function closeModal(){document.getElementById("editModal").classList.add("hidden");}
+function updateBill(){
+  const id = Number(document.getElementById("editId").value);
+  const obj = bills.find(x=>x.id===id);
+  obj.date = document.getElementById("e-date").value;
+  obj.type = document.getElementById("e-type").value;
+  obj.category = document.getElementById("e-category").value;
+  obj.amount = parseFloat(document.getElementById("e-amount").value);
+  obj.note = document.getElementById("e-note").value;
+  if(obj.type === "exp"){
+    obj.reimb = document.getElementById("e-reimbStatus").value;
+  }else{
+    obj.reimb = null;
+  }
+  saveLocal();closeModal();renderList();renderDashboard();
+}
+
+let chartExpCat = null;
+let chartReimbStat = null;
+function renderStat(){
+  const dict = i18nTexts[currentLang];
+  const now = new Date();
+  const curMonth = now.getMonth();
+  const curYear = now.getFullYear();
+  const monthData = bills.filter(b=>{
+    const dt = new Date(b.date);
+    return dt.getFullYear()===curYear && dt.getMonth()===curMonth;
+  })
+
+  let sumExp=0,sumInc=0,sumReimbDone=0;
+  const catSum={};
+  const expList = getCatList("exp");
+  expList.forEach(k=>catSum[k]=0);
+
+  let reimbPendingAmt=0, reimbNoneAmt=0;
+
+  monthData.forEach(d=>{
+    if(d.type==="exp"){
+      sumExp += d.amount;
+      catSum[d.category] += d.amount;
+      if(d.reimb === "done") sumReimbDone += d.amount;
+      if(d.reimb === "pending") reimbPendingAmt += d.amount;
+      if(!d.reimb || d.reimb === "none") reimbNoneAmt += d.amount;
+    }else{
+      sumInc += d.amount;
+    }
+  })
+  const selfPay = sumExp - sumReimbDone;
+  document.getElementById("sumExp").innerText=sumExp.toFixed(2);
+  document.getElementById("sumInc").innerText=sumInc.toFixed(2);
+  document.getElementById("sumReimbDone").innerText=sumReimbDone.toFixed(2);
+  document.getElementById("sumSelfPay").innerText=selfPay.toFixed(2);
+
+  const labelsCat=[];
+  const dataCat=[];
+  for(let k in catSum){
+    if(catSum[k]>0){
+      labelsCat.push(k);
+      dataCat.push(catSum[k]);
+    }
+  }
+  if(chartExpCat) chartExpCat.destroy();
+  chartExpCat = new Chart(document.getElementById("pieChartExp"),{
+    type:"pie",
+    data:{
+      labels:labelsCat,
+      datasets:[{
+        data:dataCat,
+        backgroundColor:[
+          '#0B4F4A','#B3261E','#B8860B','#3F6B3A','#6E7BA8','#A85C4E','#7A8471','#C08A3E','#5B7A8C','#8A5A8C','#4E8C7A','#8A8578'
+        ]
+      }]
+    },
+    options:{
+      plugins:{
+        title:{display:true,text:dict.titleExpCatPie},
+        legend:{position:"bottom"}
+      }
+    }
+  })
+
+  if(chartReimbStat) chartReimbStat.destroy();
+  chartReimbStat = new Chart(document.getElementById("pieChartReimb"),{
+    type:"pie",
+    data:{
+      labels:[dict.reimbNone, dict.reimbPending, dict.reimbDone],
+      datasets:[{
+        data:[reimbNoneAmt, reimbPendingAmt, sumReimbDone],
+        backgroundColor:['#8A8578','#B8860B','#3F6B3A']
+      }]
+    },
+    options:{
+      plugins:{
+        title:{display:true,text:dict.titleReimbPie},
+        legend:{position:"bottom"}
+      }
+    }
+  })
+}
+
+function exportCSV(){
+  let str = "date,type,category,amount,note,reimbursement\n";
+  bills.forEach(b=>{
+    str += `${b.date},${b.type},"${b.category}",${b.amount},"${b.note || ""}","${b.reimb || ""}"\n`;
+  })
+  const blob = new Blob([str],{type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url;a.download="bills.csv";a.click();
+  localStorage.setItem("lastExportDate", new Date().toISOString());
+  renderBackupNote();
+}
+
+document.getElementById("fileImport").onchange=function(e){
+  const dict = i18nTexts[currentLang];
+  const f = e.target.files[0];
+  const r = new FileReader();
+  r.onload=ev=>{
+    const lines = ev.target.result.split("\n").filter(x=>x.trim());
+    for(let i=1;i<lines.length;i++){
+      const row = lines[i].split(",");
+      if(row.length<4)continue;
+      bills.unshift({
+        id:Date.now()+Math.random(),
+        date:row[0],
+        type:row[1],
+        category:row[2].replace(/"/g,""),
+        amount:parseFloat(row[3]),
+        note:(row[4]||"").replace(/"/g,""),
+        reimb: row[5]?.replace(/"/g,"") || null
+      })
+    }
+    saveLocal();
+    renderDashboard();
+    alert(dict.alertImportOk);
+  }
+  r.readAsText(f);
+}
+</script>
+</body>
+</html>
