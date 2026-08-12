@@ -18,6 +18,9 @@
   --ink:#171A1C;
   --ink-soft:#6B7280;
   --line:#E8E4DB;
+  --card-bg:#ffffff;
+  --card-bg2:#f3f9f8;
+  --card-bg2-amber:#fff9eb;
   --teal:#0B4F4A;
   --teal-soft:#E4EEEC;
   --amber:#B8860B;
@@ -33,6 +36,19 @@
   --coral:#E0744C;
   --coral-soft:#FDEBE3;
 }
+html[data-theme="dark"]{
+  --paper:#14171C;
+  --ink:#EDEDF2;
+  --ink-soft:#9AA1AC;
+  --line:#2A2E37;
+  --card-bg:#1C2027;
+  --card-bg2:#1A2422;
+  --card-bg2-amber:#241F17;
+  --teal-soft:#1B2C2A;
+  --amber-soft:#2E260F;
+  --rose-soft:#2E1618;
+  --moss-soft:#1B241A;
+}
 *{ -webkit-tap-highlight-color: transparent; box-sizing:border-box; }
 html,body{ background:var(--paper); }
 body {
@@ -47,16 +63,29 @@ body {
 .tab-underline.active{ opacity:1; transform:scaleX(1); }
 .fade-in { animation: fadeIn 0.25s ease-out; }
 @keyframes fadeIn{ from {opacity:0;transform:translateY(4px);} to {opacity:1;transform:translateY(0);} }
+@keyframes popIn{ from {opacity:0;transform:scale(0.94);} to {opacity:1;transform:scale(1);} }
 .item-card:active { transform: scale(0.985); transition: transform 0.12s ease; }
+input, select, textarea {
+  background: var(--card-bg);
+  color: var(--ink);
+}
+input::placeholder, textarea::placeholder{ color: var(--ink-soft); opacity:1; }
 input:focus, select:focus {
   outline: none;
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(11,79,74,0.12);
 }
+html[data-theme="dark"] input, html[data-theme="dark"] select {
+  border-color: var(--line) !important;
+}
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator{ filter: invert(1); }
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight:600; letter-spacing:.01em; }
-.card{ background:#fff; border:1px solid var(--line); border-radius:20px; }
-.card-gradient-teal{ background:linear-gradient(145deg,#ffffff,#f3f9f8); border:1px solid var(--teal-soft); }
-.card-gradient-amber{ background:linear-gradient(145deg,#ffffff,#fff9eb); border:1px solid var(--amber-soft); }
+.stat-period-btn{ color:var(--ink-soft); }
+.stat-period-btn.active{ background:var(--card-bg); color:var(--teal); box-shadow:0 1px 3px rgba(0,0,0,0.08); font-weight:700; }
+.card{ background:var(--card-bg); border:1px solid var(--line); border-radius:20px; }
+.card-gradient-teal{ background:linear-gradient(145deg,var(--card-bg),var(--card-bg2)); border:1px solid var(--teal-soft); }
+.card-gradient-amber{ background:linear-gradient(145deg,var(--card-bg),var(--card-bg2-amber)); border:1px solid var(--amber-soft); }
+.icon-badge{ width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
 .bar-fill{ transition: height .5s cubic-bezier(.16,1,.3,1), background-color .3s ease; }
 .ring-fg{ transition: stroke-dashoffset .6s cubic-bezier(.16,1,.3,1), stroke .3s ease; }
 ::selection{ background: var(--teal-soft); }
@@ -83,10 +112,11 @@ tailwind.config = {
 </script>
 </head>
 <body class="max-w-lg mx-auto min-h-screen">
-<div class="sticky top-0 z-10 backdrop-blur-md" style="background:rgba(250,248,244,0.92); border-bottom:1px solid var(--line);">
+<div class="sticky top-0 z-10 backdrop-blur-md" id="headerBar" style="background:var(--paper); opacity:0.97; border-bottom:1px solid var(--line);">
   <div class="flex justify-between items-center px-4 pt-3">
     <h1 class="text-[17px] font-bold tracking-tight" style="color:var(--ink);">Ledger</h1>
     <div class="flex items-center gap-2">
+      <button id="themeToggle" onclick="toggleTheme()" class="text-lg leading-none px-1" title="Toggle dark mode">🌙</button>
       <select id="currencySelect" class="border-0 bg-transparent text-sm text-slate-500">
         <option value="CNY">¥ CNY</option>
         <option value="USD">$ USD</option>
@@ -113,14 +143,6 @@ tailwind.config = {
 
 <!-- Record 记账页面 -->
 <div id="page-add" class="p-4 fade-in space-y-4">
-  <div id="budgetEditRow" class="card p-4 hidden">
-    <label class="text-slate-500 text-[13px] block mb-1.5" data-i18n="labelBudget">Monthly budget</label>
-    <div class="flex gap-2">
-      <input type="number" step="0.01" id="budgetInput" placeholder="0.00" class="flex-1 border border-slate-200 rounded-xl p-2.5">
-      <button onclick="saveBudget()" class="px-4 rounded-xl text-white font-medium" style="background:var(--teal);" data-i18n="btnSave2">Save</button>
-    </div>
-  </div>
-
   <div class="card card-gradient-teal p-5 space-y-4">
     <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="newEntry">New Entry</p>
     <div>
@@ -168,13 +190,22 @@ tailwind.config = {
     </label>
     <button onclick="saveBill()" class="w-full text-white py-3.5 rounded-xl font-medium shadow-sm active:scale-[0.99] transition-all" style="background:var(--teal);" data-i18n="btnSave">Save</button>
   </div>
+
+  <!-- Recurring entries management -->
+  <div class="card card-gradient-amber p-5">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="recurringTitle">Monthly Repeats</p>
+    <div id="recurringList" class="space-y-2"></div>
+  </div>
 </div>
 
 <!-- Bills账单页面【移入预算仪表盘 + 近7天图表】 -->
 <div id="page-list" class="p-4 hidden fade-in space-y-4">
-  <div class="card card-gradient-teal p-5">
+  <div id="budgetCard" class="card card-gradient-teal p-5">
     <div class="flex items-center justify-between mb-4">
-      <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="budgetTitle">Monthly Budget</p>
+      <div class="flex items-center gap-2">
+        <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="budgetTitle">Monthly Budget</p>
+        <span id="overBudgetTag" class="tag hidden" style="background:var(--rose-soft); color:var(--rose);" data-i18n="overBudget">Over budget</span>
+      </div>
       <button onclick="openBudgetEdit()" class="text-[13px] font-medium" style="color:var(--teal);" data-i18n="btnEditBudget">Edit</button>
     </div>
     <div class="flex items-center gap-5">
@@ -203,6 +234,14 @@ tailwind.config = {
     <p class="text-[11px] text-slate-400 mt-3" data-i18n="currencyNote">Currency symbol only — amounts are not converted.</p>
   </div>
 
+  <div id="budgetEditRow" class="card p-4 hidden">
+    <label class="text-slate-500 text-[13px] block mb-1.5" data-i18n="labelBudget">Monthly budget</label>
+    <div class="flex gap-2">
+      <input type="number" step="0.01" id="budgetInput" placeholder="0.00" class="flex-1 border border-slate-200 rounded-xl p-2.5">
+      <button onclick="saveBudget()" class="px-4 rounded-xl text-white font-medium" style="background:var(--teal);" data-i18n="btnSave2">Save</button>
+    </div>
+  </div>
+
   <div class="card card-gradient-amber p-5">
     <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-4" data-i18n="last7Title">Last 7 Days</p>
     <div id="last7Chart" class="flex items-end justify-between gap-2 h-24"></div>
@@ -216,14 +255,32 @@ tailwind.config = {
     </label>
   </div>
   <p id="backupNote" class="text-[12px] text-slate-400 mb-3"></p>
+
+  <div class="card p-3 space-y-2">
+    <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="Search notes or category" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
+    <div class="flex gap-2 items-center">
+      <input type="date" id="filterFrom" class="flex-1 border border-slate-200 rounded-xl p-2 text-sm">
+      <span class="text-slate-400 text-sm">–</span>
+      <input type="date" id="filterTo" class="flex-1 border border-slate-200 rounded-xl p-2 text-sm">
+      <button onclick="clearFilters()" class="text-sm px-2" style="color:var(--teal);" data-i18n="btnClear">Clear</button>
+    </div>
+  </div>
+
   <div id="billList" class="space-y-3"></div>
+  <div id="noResults" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="noResults">No matching records.</div>
   <div id="emptyList" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="emptyList">No records yet. Add your first entry on the Record tab.</div>
 </div>
 
 <!-- 统计页面 -->
 <div id="page-stat" class="p-4 hidden fade-in">
+  <div class="flex gap-1.5 p-1 rounded-xl mb-4" style="background:var(--teal-soft);">
+    <button data-period="week" onclick="setStatPeriod('week')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodWeek">Week</button>
+    <button data-period="month" onclick="setStatPeriod('month')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodMonth">Month</button>
+    <button data-period="year" onclick="setStatPeriod('year')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodYear">Year</button>
+  </div>
   <div class="card card-gradient-teal p-5 mb-4 space-y-2">
-    <p class="text-center text-[15px] font-semibold mb-3" data-i18n="monthSummary">This Month Summary</p>
+    <p id="statSummaryTitle" class="text-center text-[15px] font-semibold" data-i18n="monthSummary">This Month Summary</p>
+    <p id="statPeriodLabel" class="text-center text-[12px] text-slate-400 mb-2"></p>
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalExp">Total Expense</span>：<span id="sumExp" class="text-expense font-bold text-xl font-num">0.00</span></p>
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="reimbursedAmt">Reimbursed</span>：<span id="sumReimbDone" class="text-reimbDone font-bold text-xl font-num">0.00</span></p>
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="selfPay">Self Paid</span>：<span id="sumSelfPay" style="color:var(--teal);" class="font-bold text-xl font-num">0.00</span></p>
@@ -235,11 +292,15 @@ tailwind.config = {
   <div class="card card-gradient-teal p-5">
     <canvas id="pieChartReimb"></canvas>
   </div>
+  <div class="card card-gradient-amber p-5 mt-4">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="trendTitle">6-Month Trend</p>
+    <canvas id="lineChartTrend"></canvas>
+  </div>
 </div>
 
 <!-- 编辑弹窗 -->
 <div id="editModal" class="fixed inset-0 bg-black/45 hidden flex items-center justify-center p-4 z-50">
-  <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3.5 fade-in" style="margin-bottom: env(safe-area-inset-bottom);">
+  <div class="rounded-2xl w-full max-w-md p-5 space-y-3.5 fade-in" style="margin-bottom: env(safe-area-inset-bottom); background:var(--card-bg); color:var(--ink);">
     <input type="hidden" id="editId"/>
     <input type="date" id="e-date" class="w-full border border-slate-200 rounded-xl p-2.5">
     <select id="e-type" class="w-full border border-slate-200 rounded-xl p-2.5">
@@ -268,8 +329,84 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- Custom confirm modal (native confirm()/alert() are unreliable in iOS standalone Home Screen apps) -->
+<div id="confirmModal" class="fixed inset-0 bg-black/45 hidden items-center justify-center p-4 z-50">
+  <div class="rounded-2xl w-full max-w-xs p-5 text-center" style="animation:popIn .15s ease-out; background:var(--card-bg); color:var(--ink);">
+    <p id="confirmMsg" class="text-[15px] mb-4"></p>
+    <div class="flex gap-3">
+      <button id="confirmCancelBtn" class="flex-1 py-2.5 bg-slate-200 rounded-xl font-medium"></button>
+      <button id="confirmOkBtn" class="flex-1 py-2.5 text-white rounded-xl font-medium" style="background:var(--rose);"></button>
+    </div>
+  </div>
+</div>
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 px-4 py-2.5 rounded-full text-white text-sm font-medium shadow-lg z-50 pointer-events-none opacity-0 transition-opacity" style="background:var(--ink);"></div>
+<div id="undoToast" class="fixed left-1/2 -translate-x-1/2 bottom-6 pl-4 pr-2 py-2 rounded-full text-sm font-medium shadow-lg z-50 opacity-0 pointer-events-none transition-opacity flex items-center gap-3" style="background:var(--ink); color:#fff;">
+  <span id="undoToastMsg"></span>
+  <button id="undoToastBtn" class="px-3 py-1.5 rounded-full font-semibold" style="background:rgba(255,255,255,0.18);"></button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// ---------- Theme ----------
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  document.getElementById("themeToggle").innerText = theme === "dark" ? "☀️" : "🌙";
+  localStorage.setItem("myTheme", theme);
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  applyTheme(cur);
+}
+applyTheme(localStorage.getItem("myTheme") || "light");
+
+// ---------- In-app dialogs (native alert/confirm are unreliable in iOS standalone Home Screen apps) ----------
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.innerText = msg;
+  el.style.opacity = "1";
+  el.style.pointerEvents = "none";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.style.opacity = "0"; }, 1800);
+}
+let undoToastTimer = null;
+function showUndoToast(msg, onUndo){
+  const dict = i18nTexts[currentLang];
+  const el = document.getElementById("undoToast");
+  document.getElementById("undoToastMsg").innerText = msg;
+  const btn = document.getElementById("undoToastBtn");
+  btn.innerText = dict.btnUndo;
+  el.style.opacity = "1";
+  el.style.pointerEvents = "auto";
+  clearTimeout(undoToastTimer);
+  function hide(){
+    el.style.opacity = "0";
+    el.style.pointerEvents = "none";
+    btn.onclick = null;
+  }
+  btn.onclick = ()=>{ hide(); clearTimeout(undoToastTimer); onUndo(); };
+  undoToastTimer = setTimeout(hide, 5000);
+}
+function showConfirm(msg, onOk){
+  const dict = i18nTexts[currentLang];
+  const modal = document.getElementById("confirmModal");
+  document.getElementById("confirmMsg").innerText = msg;
+  document.getElementById("confirmCancelBtn").innerText = dict.btnCancel;
+  document.getElementById("confirmOkBtn").innerText = dict.btnDelete;
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  const cancelBtn = document.getElementById("confirmCancelBtn");
+  const okBtn = document.getElementById("confirmOkBtn");
+  function cleanup(){
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    cancelBtn.onclick = null;
+    okBtn.onclick = null;
+  }
+  cancelBtn.onclick = cleanup;
+  okBtn.onclick = ()=>{ cleanup(); onOk(); };
+}
+
 const i18nTexts = {
   zh:{
     tabBill:"记账",tabList:"账单",tabStat:"统计",
@@ -280,8 +417,11 @@ const i18nTexts = {
     optExp:"支出",optInc:"收入",
     reimbNone:"不可报销",reimbPending:"待报销",reimbDone:"已报销",
     btnSave:"保存记录",btnExport:"导出CSV",btnImport:"导入CSV",
-    btnCancel:"取消",btnUpdate:"保存修改",
+    btnCancel:"取消",btnUpdate:"保存修改",btnDelete:"删除",btnUndo:"撤销",deletedMsg:"记录已删除",
+    btnDup:"复制",dupMsg:"已复制该记录",searchPh:"搜索备注或类别",btnClear:"清除",noResults:"没有匹配的记录",
     monthSummary:"本月汇总",totalExp:"总支出",totalInc:"总收入",
+    periodWeek:"本周", periodMonth:"本月", periodYear:"本年",
+    weekSummary:"本周汇总", yearSummary:"本年汇总",
     reimbursedAmt:"已报销金额",selfPay:"个人实际支出",
     alertEmpty:"请填写日期和有效金额",
     alertSaved:"保存成功",
@@ -290,12 +430,14 @@ const i18nTexts = {
     alertImportOk:"导入完成！切换到账单列表查看",
     titleExpCatPie:"支出分类占比",
     titleReimbPie:"报销分布",
+    trendTitle:"近6个月趋势",
     budgetTitle:"本月预算", btnEditBudget:"编辑", lblSpent:"已花费", lblBudget:"预算",
-    lblRemaining:"剩余", labelBudget:"每月预算", btnSave2:"保存",
+    lblRemaining:"剩余", labelBudget:"每月预算", btnSave2:"保存", overBudget:"已超支",
     newEntry:"新增记录", last7Title:"最近7天", emptyList:"暂无记录，去记账页添加第一笔吧",
     alertBudgetSaved:"预算已保存",
     currencyNote:"仅切换货币符号，不进行汇率换算。",
-    labelRepeat:"每月重复",
+    labelRepeat:"每月重复", recurringTitle:"每月重复项目", noRecurring:"暂无重复项目",
+    confirmDelRecurring:"停止这项每月重复？",
     backupNote:"上次备份：", backupNever:"从未备份", backupToday:"今天",
     backupDays:"天前", backupWarn:"建议导出备份",
     catExp:["餐饮","旅行","猫咪","水电煤","交通","住房","购物","娱乐","医疗","教育","通讯","其他"],
@@ -310,8 +452,11 @@ const i18nTexts = {
     optExp:"Expense",optInc:"Income",
     reimbNone:"No reimb",reimbPending:"Pending",reimbDone:"Reimbursed",
     btnSave:"Save",btnExport:"Export CSV",btnImport:"Import CSV",
-    btnCancel:"Cancel",btnUpdate:"Update",
+    btnCancel:"Cancel",btnUpdate:"Update",btnDelete:"Delete",btnUndo:"Undo",deletedMsg:"Record deleted",
+    btnDup:"Copy",dupMsg:"Entry duplicated",searchPh:"Search notes or category",btnClear:"Clear",noResults:"No matching records.",
     monthSummary:"This Month Summary",totalExp:"Total Expense",totalInc:"Total Income",
+    periodWeek:"Week", periodMonth:"Month", periodYear:"Year",
+    weekSummary:"This Week Summary", yearSummary:"This Year Summary",
     reimbursedAmt:"Reimbursed",selfPay:"Self Paid",
     alertEmpty:"Please fill date and valid amount",
     alertSaved:"Saved successfully",
@@ -320,18 +465,35 @@ const i18nTexts = {
     alertImportOk:"Import finished! Switch to bills list",
     titleExpCatPie:"Expense Category Breakdown",
     titleReimbPie:"Reimbursement Status",
+    trendTitle:"6-Month Trend",
     budgetTitle:"Monthly Budget", btnEditBudget:"Edit", lblSpent:"Spent", lblBudget:"Budget",
-    lblRemaining:"Remaining", labelBudget:"Monthly budget", btnSave2:"Save",
+    lblRemaining:"Remaining", labelBudget:"Monthly budget", btnSave2:"Save", overBudget:"Over budget",
     newEntry:"New Entry", last7Title:"Last 7 Days", emptyList:"No records yet. Add your first entry on the Record tab.",
     alertBudgetSaved:"Budget saved",
     currencyNote:"Currency symbol only — amounts are not converted.",
-    labelRepeat:"Repeat monthly",
+    labelRepeat:"Repeat monthly", recurringTitle:"Monthly Repeats", noRecurring:"No repeating entries yet",
+    confirmDelRecurring:"Stop this monthly repeat?",
     backupNote:"Last backup: ", backupNever:"never", backupToday:"today",
     backupDays:" days ago", backupWarn:"— consider exporting a backup",
     catExp:["Food","Travel","Pet Cat","Utility","Transportation","Housing","Shopping","Entertainment","Medical","Education","Telecom","Other"],
     catInc:["Salary","Bonus","Investment","Part-time","Gift","Other Income"]
   }
 };
+
+// colorful per-category accents + icons
+const catColors = ['#0B4F4A','#B3261E','#B8860B','#3F6B3A','#7963B5','#E0744C','#3887BE','#8A5A8C','#4E8C7A','#C08A3E','#7A8471','#8A8578'];
+const catEmoji = {
+  "Food":"🍜","Travel":"✈️","Pet Cat":"🐱","Utility":"💡","Transportation":"🚌","Housing":"🏠","Shopping":"🛍️","Entertainment":"🎬","Medical":"💊","Education":"📚","Telecom":"📱","Other":"🗂️",
+  "餐饮":"🍜","旅行":"✈️","猫咪":"🐱","水电煤":"💡","交通":"🚌","住房":"🏠","购物":"🛍️","娱乐":"🎬","医疗":"💊","教育":"📚","通讯":"📱","其他":"🗂️",
+  "Salary":"💰","Bonus":"🎁","Investment":"📈","Part-time":"🧾","Gift":"🧧","Other Income":"✨",
+  "工资":"💰","奖金":"🎁","理财":"📈","兼职":"🧾","红包":"🧧","其他收入":"✨"
+};
+function catColor(name){
+  let h = 0;
+  for(let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) >>> 0;
+  return catColors[h % catColors.length];
+}
+function catIcon(name){ return catEmoji[name] || "🗂️"; }
 
 let currentLang = localStorage.getItem("appLang") || "en";
 let bills = JSON.parse(localStorage.getItem("myBills")) || [];
@@ -343,6 +505,7 @@ function sym(){ return currencySymbols[currentCurrency] || "¥"; }
 
 let chartExpCat = null;
 let chartReimbStat = null;
+let chartTrend = null;
 
 document.getElementById("currencySelect").value = currentCurrency;
 document.getElementById("currencySelect").onchange = function(){
@@ -350,6 +513,7 @@ document.getElementById("currencySelect").onchange = function(){
   localStorage.setItem("myCurrency", currentCurrency);
   renderDashboard();
   renderList();
+  renderRecurring();
 };
 
 // tab下划线数组，对应 add / list / stat
@@ -372,6 +536,7 @@ function setLanguage(lang){
   renderList();
   renderStat();
   renderDashboard();
+  renderRecurring();
   renderBackupNote();
 }
 
@@ -448,6 +613,7 @@ document.querySelectorAll("[data-page]").forEach((btn, idx)=>{
     document.getElementById("page-"+target).classList.remove("hidden");
     if(target==="list"){ renderList(); renderDashboard(); renderBackupNote(); }
     if(target==="stat") renderStat();
+    if(target==="add"){ renderRecurring(); }
   }
 })
 
@@ -468,7 +634,7 @@ function saveBill(){
     reimb = document.getElementById("reimbStatus").value;
   }
 
-  if(!d || !a || a<=0) return alert(dict.alertEmpty);
+  if(!d || !a || a<=0) return showToast(dict.alertEmpty);
 
   const repeat = document.getElementById("repeatMonthly").checked;
   let recurringId = null;
@@ -481,7 +647,6 @@ function saveBill(){
       day: new Date(d).getDate()
     });
     localStorage.setItem("myRecurring", JSON.stringify(recurring));
-    alert(dict.alertRecurSaved);
   }
 
   bills.unshift({
@@ -501,6 +666,75 @@ function saveBill(){
   document.getElementById("hasReimbCheck").checked = false;
   document.getElementById("reimbRow").classList.add("hidden");
   renderDashboard();
+  renderRecurring();
+  showToast(repeat ? dict.alertRecurSaved : dict.alertSaved);
+}
+
+// Auto-generate this month's instance of each recurring template, once per month
+function applyRecurring(){
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  let changed = false;
+  recurring.forEach(r=>{
+    const already = bills.some(b=> b.recurringId===r.id &&
+      new Date(b.date).getFullYear()===y && new Date(b.date).getMonth()===m);
+    if(already) return;
+    const day = Math.min(r.day, daysInMonth);
+    const dt = new Date(y, m, day);
+    if(dt > now) return;
+    const dateStr = dt.toISOString().slice(0,10);
+    bills.unshift({
+      id: Date.now()+Math.random(),
+      date: dateStr,
+      type: r.type,
+      category: r.category,
+      amount: r.amount,
+      note: r.note,
+      reimb: r.reimb,
+      recurringId: r.id
+    });
+    changed = true;
+  });
+  if(changed) saveLocal();
+}
+
+function renderRecurring(){
+  const dict = i18nTexts[currentLang];
+  const wrap = document.getElementById("recurringList");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  if(recurring.length===0){
+    wrap.innerHTML = `<p class="text-sm text-slate-400">${dict.noRecurring}</p>`;
+    return;
+  }
+  recurring.forEach(r=>{
+    const row = document.createElement("div");
+    row.className = "flex justify-between items-center py-1.5";
+    row.innerHTML = `
+      <div class="flex items-center gap-2.5 text-sm">
+        <span class="icon-badge" style="background:${catColor(r.category)}22;">${catIcon(r.category)}</span>
+        <div>
+          <div class="font-medium">${r.category}</div>
+          <div class="text-slate-400 text-xs">${currentLang==='zh'?'每月'+r.day+'日':'day '+r.day}</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="font-num text-sm ${r.type==='exp'?'text-expense':'text-income'}">${r.type==='exp'?'-':'+'}${sym()}${r.amount.toFixed(2)}</span>
+        <button onclick="delRecurring('${r.id}')" class="text-expense text-sm">${dict.btnDelete}</button>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function delRecurring(id){
+  const dict = i18nTexts[currentLang];
+  showConfirm(dict.confirmDelRecurring, ()=>{
+    recurring = recurring.filter(r=>r.id!==id);
+    localStorage.setItem("myRecurring", JSON.stringify(recurring));
+    renderRecurring();
+  });
 }
 
 function renderBackupNote(){
@@ -534,7 +768,7 @@ function saveBudget(){
   localStorage.setItem("myBudget", v);
   document.getElementById("budgetEditRow").classList.add("hidden");
   renderDashboard();
-  alert(dict.alertBudgetSaved);
+  showToast(dict.alertBudgetSaved);
 }
 
 function renderDashboard(){
@@ -557,6 +791,20 @@ function renderDashboard(){
   remEl.innerText = sym() + remaining.toFixed(2);
   remEl.style.color = remaining < 0 ? "var(--rose)" : "var(--ink)";
 
+  const overBudget = monthlyBudget > 0 && sumExp > monthlyBudget;
+  const budgetCard = document.getElementById("budgetCard");
+  const overTag = document.getElementById("overBudgetTag");
+  if(overBudget){
+    budgetCard.style.background = "linear-gradient(145deg,#ffffff,var(--rose-soft))";
+    budgetCard.style.borderColor = "var(--rose)";
+    overTag.classList.remove("hidden");
+  }else{
+    budgetCard.style.background = "";
+    budgetCard.style.borderColor = "";
+    overTag.classList.add("hidden");
+  }
+  document.getElementById("dashSpent").style.color = overBudget ? "var(--rose)" : "";
+
   const circumference = 238.76;
   const offset = circumference - (pct/100)*circumference;
   const ring = document.getElementById("budgetRing");
@@ -576,25 +824,50 @@ function renderDashboard(){
   const maxVal = Math.max(...days.map(d=>d.total), 1);
   const wrap = document.getElementById("last7Chart");
   wrap.innerHTML = "";
-  days.forEach(d=>{
+  days.forEach((d,i)=>{
     const h = Math.max(4, Math.round((d.total/maxVal)*72));
     const col = document.createElement("div");
     col.className = "flex-1 flex flex-col items-center justify-end gap-1.5 h-full";
+    const barColor = d.isToday ? 'var(--teal)' : catColors[i % catColors.length] + '33';
     col.innerHTML = `
       <span class="text-[10px] font-num text-slate-400">${d.total>0? d.total.toFixed(0):''}</span>
-      <div class="w-full rounded-t-md bar-fill" style="height:${h}px; background:${d.isToday? 'var(--teal)':'var(--teal-soft)'};"></div>
+      <div class="w-full rounded-t-md bar-fill" style="height:${h}px; background:${barColor};"></div>
       <span class="text-[11px] ${d.isToday?'font-semibold':'text-slate-400'}" style="color:${d.isToday?'var(--teal)':''}">${d.label}</span>
     `;
     wrap.appendChild(col);
   });
 }
 
+function getFilteredBills(){
+  const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+  const from = document.getElementById("filterFrom").value;
+  const to = document.getElementById("filterTo").value;
+  return bills.filter(item=>{
+    if(q && !( (item.note||"").toLowerCase().includes(q) || (item.category||"").toLowerCase().includes(q) )) return false;
+    if(from && item.date < from) return false;
+    if(to && item.date > to) return false;
+    return true;
+  });
+}
+function clearFilters(){
+  document.getElementById("searchInput").value = "";
+  document.getElementById("filterFrom").value = "";
+  document.getElementById("filterTo").value = "";
+  renderList();
+}
+document.getElementById("searchInput").oninput = renderList;
+document.getElementById("filterFrom").onchange = renderList;
+document.getElementById("filterTo").onchange = renderList;
+
 function renderList(){
   const dict = i18nTexts[currentLang];
   const wrap = document.getElementById("billList");
   wrap.innerHTML="";
+  const filtered = getFilteredBills();
+  const hasFilter = document.getElementById("searchInput").value.trim() || document.getElementById("filterFrom").value || document.getElementById("filterTo").value;
   document.getElementById("emptyList").classList.toggle("hidden", bills.length>0);
-  bills.forEach(item=>{
+  document.getElementById("noResults").classList.toggle("hidden", !(hasFilter && filtered.length===0));
+  filtered.forEach(item=>{
     const div = document.createElement("div");
     div.className="card item-card p-4 flex justify-between items-center transition-transform";
     let tagHtml = "";
@@ -603,19 +876,23 @@ function renderList(){
       if(item.reimb==="done") tagHtml = `<span class="tag" style="background:var(--moss-soft); color:var(--moss);">${dict.reimbDone}</span>`;
     }
     div.innerHTML=`
-      <div>
-        <div class="font-medium">${item.date} · ${item.category}</div>
-        <div class="flex gap-2 items-center text-sm text-slate-400 mt-0.5">
-          ${item.note||""} ${tagHtml}
+      <div class="flex items-center gap-3">
+        <span class="icon-badge" style="background:${catColor(item.category)}22;">${catIcon(item.category)}</span>
+        <div>
+          <div class="font-medium">${item.date} · ${item.category}</div>
+          <div class="flex gap-2 items-center text-sm text-slate-400 mt-0.5">
+            ${item.note||""} ${tagHtml}
+          </div>
         </div>
       </div>
       <div class="text-right">
         <div class="${item.type==='exp'?'text-expense':'text-income'} font-semibold text-lg font-num">
           ${item.type==='exp'?'-':'+'}${sym()}${item.amount.toFixed(2)}
         </div>
-        <div class="flex gap-3 mt-1.5 justify-end">
+        <div class="flex gap-2.5 mt-1.5 justify-end">
+          <button onclick="duplicateBill(${item.id})" class="text-sm" style="color:var(--sky);">${dict.btnDup}</button>
           <button onclick="openEdit(${item.id})" class="text-sm" style="color:var(--teal);">Edit</button>
-          <button onclick="del(${item.id})" class="text-expense text-sm">Del</button>
+          <button onclick="del(${item.id})" class="text-expense text-sm">${dict.btnDelete}</button>
         </div>
       </div>
     `;
@@ -625,11 +902,39 @@ function renderList(){
 
 function del(id){
   const dict = i18nTexts[currentLang];
-  if(!confirm(dict.confirmDel))return;
-  bills = bills.filter(x=>x.id!==id);
+  const idx = bills.findIndex(x=>x.id===id);
+  if(idx === -1) return;
+  const removed = bills[idx];
+  bills.splice(idx,1);
   saveLocal();
   renderList();
   renderDashboard();
+  showUndoToast(dict.deletedMsg, ()=>{
+    bills.splice(idx,0,removed);
+    saveLocal();
+    renderList();
+    renderDashboard();
+  });
+}
+
+function duplicateBill(id){
+  const dict = i18nTexts[currentLang];
+  const item = bills.find(x=>x.id===id);
+  if(!item) return;
+  bills.unshift({
+    id: Date.now()+Math.random(),
+    date: new Date().toISOString().slice(0,10),
+    type: item.type,
+    category: item.category,
+    amount: item.amount,
+    note: item.note,
+    reimb: item.reimb,
+    recurringId: null
+  });
+  saveLocal();
+  renderList();
+  renderDashboard();
+  showToast(dict.dupMsg);
 }
 
 function openEdit(id){
@@ -676,15 +981,58 @@ function updateBill(){
   saveLocal();closeModal();renderList();renderDashboard();
 }
 
+let statPeriod = "month";
+function setStatPeriod(p){
+  statPeriod = p;
+  document.querySelectorAll(".stat-period-btn").forEach(b=>{
+    b.classList.toggle("active", b.dataset.period===p);
+  });
+  renderStat();
+}
+
+function getWeekBounds(now){
+  const day = now.getDay(); // 0=Sun..6=Sat
+  const diffToMon = day===0 ? 6 : day-1;
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()-diffToMon);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()-diffToMon+7);
+  return { start, end };
+}
+
+function getPeriodRange(period){
+  const now = new Date();
+  if(period === "week"){
+    const { start, end } = getWeekBounds(now);
+    return (dt)=> dt >= start && dt < end;
+  }
+  if(period === "year"){
+    return (dt)=> dt.getFullYear() === now.getFullYear();
+  }
+  return (dt)=> dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+}
+
+function getPeriodLabel(period){
+  const now = new Date();
+  const locale = currentLang === "zh" ? "zh-CN" : "en-US";
+  if(period === "year"){
+    return currentLang==="zh" ? now.getFullYear()+"年" : String(now.getFullYear());
+  }
+  if(period === "month"){
+    return now.toLocaleDateString(locale, { year:"numeric", month:"long" });
+  }
+  const { start, end } = getWeekBounds(now);
+  const lastDay = new Date(end.getTime() - 86400000);
+  const startStr = start.toLocaleDateString(locale, { month:"short", day:"numeric" });
+  const endStr = lastDay.toLocaleDateString(locale, { month:"short", day:"numeric", year:"numeric" });
+  return `${startStr} – ${endStr}`;
+}
+
 function renderStat(){
   const dict = i18nTexts[currentLang];
-  const now = new Date();
-  const curMonth = now.getMonth();
-  const curYear = now.getFullYear();
-  const monthData = bills.filter(b=>{
-    const dt = new Date(b.date);
-    return dt.getFullYear()===curYear && dt.getMonth()===curMonth;
-  })
+  const inRange = getPeriodRange(statPeriod);
+  const monthData = bills.filter(b=> inRange(new Date(b.date)));
+  const titleKey = statPeriod==="week" ? "weekSummary" : statPeriod==="year" ? "yearSummary" : "monthSummary";
+  document.getElementById("statSummaryTitle").innerText = dict[titleKey];
+  document.getElementById("statPeriodLabel").innerText = getPeriodLabel(statPeriod);
 
   let sumExp=0,sumInc=0,sumReimbDone=0;
   const catSum={};
@@ -712,10 +1060,12 @@ function renderStat(){
 
   const labelsCat=[];
   const dataCat=[];
+  const colorsCat=[];
   for(let k in catSum){
     if(catSum[k]>0){
       labelsCat.push(k);
       dataCat.push(catSum[k]);
+      colorsCat.push(catColor(k));
     }
   }
 
@@ -726,9 +1076,7 @@ function renderStat(){
       labels:labelsCat.length?labelsCat:[dict.reimbNone],
       datasets:[{
         data:dataCat.length?dataCat:[1],
-        backgroundColor:[
-          '#0B4F4A','#B3261E','#B8860B','#3F6B3A','#7963B5','#E0744C','#7A8471','#C08A3E','#3887BE','#8A5A8C','#4E8C7A','#8A8578'
-        ]
+        backgroundColor: colorsCat.length?colorsCat:['#8A8578']
       }]
     },
     options:{
@@ -755,6 +1103,48 @@ function renderStat(){
         title:{display:true,text:dict.titleReimbPie},
         legend:{position:"bottom"}
       }
+    }
+  })
+
+  renderTrendChart();
+}
+
+function renderTrendChart(){
+  const dict = i18nTexts[currentLang];
+  const locale = currentLang === "zh" ? "zh-CN" : "en-US";
+  const now = new Date();
+  const labels = [];
+  const data = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const y = d.getFullYear(), m = d.getMonth();
+    const total = bills.filter(b=>{
+      if(b.type!=="exp") return false;
+      const dt = new Date(b.date);
+      return dt.getFullYear()===y && dt.getMonth()===m;
+    }).reduce((s,b)=>s+b.amount,0);
+    labels.push(d.toLocaleDateString(locale, {month:"short"}));
+    data.push(total);
+  }
+  if(chartTrend) chartTrend.destroy();
+  chartTrend = new Chart(document.getElementById("lineChartTrend"),{
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label: dict.totalExp,
+        data,
+        borderColor:"#0B4F4A",
+        backgroundColor:"rgba(11,79,74,0.12)",
+        tension:0.35,
+        fill:true,
+        pointBackgroundColor:"#0B4F4A",
+        pointRadius:4
+      }]
+    },
+    options:{
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true } }
     }
   })
 }
@@ -821,7 +1211,7 @@ document.getElementById("fileImport").onchange=function(e){
     }
     bills = imported.concat(bills);
     saveLocal();
-    alert(dict.alertImportOk);
+    showToast(dict.alertImportOk);
     renderList();
     renderDashboard();
   }
@@ -831,9 +1221,12 @@ document.getElementById("fileImport").onchange=function(e){
 
 document.addEventListener('DOMContentLoaded', function(){
   document.getElementById("date").valueAsDate = new Date();
+  applyRecurring();
+  document.querySelector('.stat-period-btn[data-period="month"]').classList.add("active");
   setLanguage(currentLang);
   toggleReimbUI();
   renderDashboard();
+  renderRecurring();
 });
 </script>
 </body>
