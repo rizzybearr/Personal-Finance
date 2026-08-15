@@ -12,6 +12,92 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+    collection, getDocs, addDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBgLdTAiY7R5y9tE0IJuxkYVeUJAuGXURg",
+    authDomain: "ledger-803d1.firebaseapp.com",
+    projectId: "ledger-803d1",
+    storageBucket: "ledger-803d1.firebasestorage.app",
+    messagingSenderId: "56161373700",
+    appId: "1:56161373700:web:dffea11840f44729a4ef51",
+    measurementId: "G-LGXT6R7J5P"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.fb = {
+    signUp(email, password){ return createUserWithEmailAndPassword(auth, email, password); },
+    signIn(email, password){ return signInWithEmailAndPassword(auth, email, password); },
+    signOutUser(){ return signOut(auth); },
+    onAuthChange(cb){ onAuthStateChanged(auth, cb); },
+
+    async loadUserData(uid){
+      const metaRef = doc(db, "users", uid);
+      const metaSnap = await getDoc(metaRef);
+      const meta = metaSnap.exists() ? metaSnap.data() : {};
+
+      const billsSnap = await getDocs(collection(db, "users", uid, "bills"));
+      let bills = [];
+      billsSnap.forEach(d=> bills.push({ id:d.id, ...d.data() }));
+      bills.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b._ts||0)-(a._ts||0));
+
+      const recSnap = await getDocs(collection(db, "users", uid, "recurring"));
+      let recurring = [];
+      recSnap.forEach(d=> recurring.push({ id:d.id, ...d.data() }));
+
+      return {
+        monthlyBudget: meta.monthlyBudget || 0,
+        currency: meta.currency || "CNY",
+        lastExportDate: meta.lastExportDate || null,
+        bills, recurring
+      };
+    },
+
+    async addBill(uid, data){
+      const ref = await addDoc(collection(db, "users", uid, "bills"), {...data, _ts: Date.now()});
+      return ref.id;
+    },
+    async setBill(uid, id, data){
+      await setDoc(doc(db, "users", uid, "bills", id), {...data, _ts: Date.now()});
+    },
+    async updateBillDoc(uid, id, data){
+      await updateDoc(doc(db, "users", uid, "bills", id), data);
+    },
+    async deleteBillDoc(uid, id){
+      await deleteDoc(doc(db, "users", uid, "bills", id));
+    },
+    async bulkAddBills(uid, arr){
+      const ids = [];
+      for(const item of arr){
+        const ref = await addDoc(collection(db, "users", uid, "bills"), {...item, _ts: Date.now()});
+        ids.push(ref.id);
+      }
+      return ids;
+    },
+    async addRecurring(uid, data){
+      const ref = await addDoc(collection(db, "users", uid, "recurring"), data);
+      return ref.id;
+    },
+    async deleteRecurringDoc(uid, id){
+      await deleteDoc(doc(db, "users", uid, "recurring", id));
+    },
+    async setUserMeta(uid, partial){
+      await setDoc(doc(db, "users", uid), partial, { merge:true });
+    }
+  };
+</script>
 <style>
 :root{
   --paper:#FAF8F4;
@@ -112,11 +198,31 @@ tailwind.config = {
 </script>
 </head>
 <body class="max-w-lg mx-auto min-h-screen">
+
+<!-- Auth screen -->
+<div id="authScreen" class="fixed inset-0 z-40 flex items-center justify-center p-5" style="background:var(--paper);">
+  <div class="w-full max-w-sm space-y-4">
+    <div class="text-center mb-2">
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--teal);">Ledger</h1>
+      <p id="authSubtitle" class="text-sm text-slate-400 mt-1" data-i18n="authSubtitleIn">Sign in to sync your data</p>
+    </div>
+    <div class="card p-5 space-y-3">
+      <input type="email" id="authEmail" data-i18n-placeholder="authEmailPh" placeholder="Email" class="w-full border border-slate-200 rounded-xl p-3">
+      <input type="password" id="authPassword" data-i18n-placeholder="authPasswordPh" placeholder="Password" class="w-full border border-slate-200 rounded-xl p-3">
+      <p id="authError" class="text-sm hidden" style="color:var(--rose);"></p>
+      <button id="authSubmitBtn" onclick="handleAuthSubmit()" class="w-full text-white py-3 rounded-xl font-medium" style="background:var(--teal);" data-i18n="authSignIn">Sign In</button>
+      <button onclick="toggleAuthMode()" class="w-full text-sm py-1" style="color:var(--teal);" id="authToggleBtn" data-i18n="authNeedAccount">Need an account? Sign up</button>
+    </div>
+  </div>
+</div>
+
+<div id="appRoot" class="hidden">
 <div class="sticky top-0 z-10 backdrop-blur-md" id="headerBar" style="background:var(--paper); opacity:0.97; border-bottom:1px solid var(--line);">
   <div class="flex justify-between items-center px-4 pt-3">
     <h1 class="text-[17px] font-bold tracking-tight" style="color:var(--ink);">Ledger</h1>
     <div class="flex items-center gap-2">
       <button id="themeToggle" onclick="toggleTheme()" class="text-lg leading-none px-1" title="Toggle dark mode">🌙</button>
+      <button onclick="handleSignOut()" class="text-sm px-1" style="color:var(--ink-soft);" data-i18n="authSignOut">Sign out</button>
       <select id="currencySelect" class="border-0 bg-transparent text-sm text-slate-500">
         <option value="CNY">¥ CNY</option>
         <option value="USD">$ USD</option>
@@ -441,7 +547,12 @@ const i18nTexts = {
     backupNote:"上次备份：", backupNever:"从未备份", backupToday:"今天",
     backupDays:"天前", backupWarn:"建议导出备份",
     catExp:["餐饮","旅行","猫咪","水电煤","交通","住房","购物","娱乐","医疗","教育","通讯","其他"],
-    catInc:["工资","奖金","理财","兼职","红包","其他收入"]
+    catInc:["工资","奖金","理财","兼职","红包","其他收入"],
+    authSubtitleIn:"登录以同步您的数据", authSubtitleUp:"创建账户以同步您的数据",
+    authEmailPh:"邮箱", authPasswordPh:"密码",
+    authSignIn:"登录", authSignUp:"注册", authSignOut:"退出登录",
+    authNeedAccount:"没有账户？去注册", authHaveAccount:"已有账户？去登录",
+    authFillBoth:"请填写邮箱和密码"
   },
   en:{
     tabBill:"Record",tabList:"Bills",tabStat:"Stats",
@@ -476,7 +587,12 @@ const i18nTexts = {
     backupNote:"Last backup: ", backupNever:"never", backupToday:"today",
     backupDays:" days ago", backupWarn:"— consider exporting a backup",
     catExp:["Food","Travel","Pet Cat","Utility","Transportation","Housing","Shopping","Entertainment","Medical","Education","Telecom","Other"],
-    catInc:["Salary","Bonus","Investment","Part-time","Gift","Other Income"]
+    catInc:["Salary","Bonus","Investment","Part-time","Gift","Other Income"],
+    authSubtitleIn:"Sign in to sync your data", authSubtitleUp:"Create an account to sync your data",
+    authEmailPh:"Email", authPasswordPh:"Password",
+    authSignIn:"Sign In", authSignUp:"Sign Up", authSignOut:"Sign out",
+    authNeedAccount:"Need an account? Sign up", authHaveAccount:"Have an account? Sign in",
+    authFillBoth:"Please fill in email and password"
   }
 };
 
@@ -496,10 +612,12 @@ function catColor(name){
 function catIcon(name){ return catEmoji[name] || "🗂️"; }
 
 let currentLang = localStorage.getItem("appLang") || "en";
-let bills = JSON.parse(localStorage.getItem("myBills")) || [];
-let monthlyBudget = parseFloat(localStorage.getItem("myBudget")) || 0;
-let currentCurrency = localStorage.getItem("myCurrency") || "CNY";
-let recurring = JSON.parse(localStorage.getItem("myRecurring")) || [];
+let bills = [];
+let monthlyBudget = 0;
+let currentCurrency = "CNY";
+let recurring = [];
+let lastExportDate = null;
+let currentUid = null;
 const currencySymbols = { CNY:"¥", USD:"$", EUR:"€", GBP:"£" };
 function sym(){ return currencySymbols[currentCurrency] || "¥"; }
 
@@ -507,10 +625,9 @@ let chartExpCat = null;
 let chartReimbStat = null;
 let chartTrend = null;
 
-document.getElementById("currencySelect").value = currentCurrency;
 document.getElementById("currencySelect").onchange = function(){
   currentCurrency = this.value;
-  localStorage.setItem("myCurrency", currentCurrency);
+  if(currentUid) window.fb.setUserMeta(currentUid, { currency: currentCurrency });
   renderDashboard();
   renderList();
   renderRecurring();
@@ -621,7 +738,7 @@ document.getElementById("editModal").onclick = function(e){
   if(e.target === this) closeModal();
 }
 
-function saveBill(){
+async function saveBill(){
   const dict = i18nTexts[currentLang];
   const d = document.getElementById("date").value;
   const t = document.getElementById("type").value;
@@ -639,27 +756,15 @@ function saveBill(){
   const repeat = document.getElementById("repeatMonthly").checked;
   let recurringId = null;
   if(repeat){
-    recurringId = "r"+Date.now();
-    recurring.push({
-      id: recurringId,
-      type:t, category:c, amount:a, note:n,
-      reimb: reimb,
-      day: new Date(d).getDate()
-    });
-    localStorage.setItem("myRecurring", JSON.stringify(recurring));
+    const recData = { type:t, category:c, amount:a, note:n, reimb, day: new Date(d).getDate() };
+    recurringId = await window.fb.addRecurring(currentUid, recData);
+    recurring.push({ id: recurringId, ...recData });
   }
 
-  bills.unshift({
-    id:Date.now(),
-    date:d,
-    type:t,
-    category:c,
-    amount:a,
-    note:n,
-    reimb: reimb,
-    recurringId
-  });
-  saveLocal();
+  const billData = { date:d, type:t, category:c, amount:a, note:n, reimb, recurringId };
+  const newId = await window.fb.addBill(currentUid, billData);
+  bills.unshift({ id:newId, ...billData });
+
   document.getElementById("amount").value="";
   document.getElementById("note").value="";
   document.getElementById("repeatMonthly").checked = false;
@@ -671,32 +776,22 @@ function saveBill(){
 }
 
 // Auto-generate this month's instance of each recurring template, once per month
-function applyRecurring(){
+async function applyRecurring(){
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth();
   const daysInMonth = new Date(y, m+1, 0).getDate();
-  let changed = false;
-  recurring.forEach(r=>{
+  for(const r of recurring){
     const already = bills.some(b=> b.recurringId===r.id &&
       new Date(b.date).getFullYear()===y && new Date(b.date).getMonth()===m);
-    if(already) return;
+    if(already) continue;
     const day = Math.min(r.day, daysInMonth);
     const dt = new Date(y, m, day);
-    if(dt > now) return;
+    if(dt > now) continue;
     const dateStr = dt.toISOString().slice(0,10);
-    bills.unshift({
-      id: Date.now()+Math.random(),
-      date: dateStr,
-      type: r.type,
-      category: r.category,
-      amount: r.amount,
-      note: r.note,
-      reimb: r.reimb,
-      recurringId: r.id
-    });
-    changed = true;
-  });
-  if(changed) saveLocal();
+    const billData = { date: dateStr, type: r.type, category: r.category, amount: r.amount, note: r.note, reimb: r.reimb, recurringId: r.id };
+    const newId = await window.fb.addBill(currentUid, billData);
+    bills.unshift({ id:newId, ...billData });
+  }
 }
 
 function renderRecurring(){
@@ -728,11 +823,11 @@ function renderRecurring(){
   });
 }
 
-function delRecurring(id){
+async function delRecurring(id){
   const dict = i18nTexts[currentLang];
-  showConfirm(dict.confirmDelRecurring, ()=>{
+  showConfirm(dict.confirmDelRecurring, async ()=>{
+    await window.fb.deleteRecurringDoc(currentUid, id);
     recurring = recurring.filter(r=>r.id!==id);
-    localStorage.setItem("myRecurring", JSON.stringify(recurring));
     renderRecurring();
   });
 }
@@ -740,20 +835,15 @@ function delRecurring(id){
 function renderBackupNote(){
   const dict = i18nTexts[currentLang];
   const el = document.getElementById("backupNote");
-  const last = localStorage.getItem("lastExportDate");
-  if(!last){
+  if(!lastExportDate){
     el.innerText = dict.backupNote + dict.backupNever;
     el.style.color = "";
     return;
   }
-  const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  const days = Math.floor((Date.now() - new Date(lastExportDate).getTime()) / 86400000);
   let when = days<=0 ? dict.backupToday : days + dict.backupDays;
   el.innerText = dict.backupNote + when + (days>=7 ? " " + dict.backupWarn : "");
   el.style.color = days>=7 ? "var(--amber)" : "";
-}
-
-function saveLocal(){
-  localStorage.setItem("myBills",JSON.stringify(bills));
 }
 
 function openBudgetEdit(){
@@ -761,11 +851,11 @@ function openBudgetEdit(){
   row.classList.toggle("hidden");
   document.getElementById("budgetInput").value = monthlyBudget || "";
 }
-function saveBudget(){
+async function saveBudget(){
   const dict = i18nTexts[currentLang];
   const v = parseFloat(document.getElementById("budgetInput").value) || 0;
   monthlyBudget = v;
-  localStorage.setItem("myBudget", v);
+  await window.fb.setUserMeta(currentUid, { monthlyBudget: v });
   document.getElementById("budgetEditRow").classList.add("hidden");
   renderDashboard();
   showToast(dict.alertBudgetSaved);
@@ -890,9 +980,9 @@ function renderList(){
           ${item.type==='exp'?'-':'+'}${sym()}${item.amount.toFixed(2)}
         </div>
         <div class="flex gap-2.5 mt-1.5 justify-end">
-          <button onclick="duplicateBill(${item.id})" class="text-sm" style="color:var(--sky);">${dict.btnDup}</button>
-          <button onclick="openEdit(${item.id})" class="text-sm" style="color:var(--teal);">Edit</button>
-          <button onclick="del(${item.id})" class="text-expense text-sm">${dict.btnDelete}</button>
+          <button onclick="duplicateBill('${item.id}')" class="text-sm" style="color:var(--sky);">${dict.btnDup}</button>
+          <button onclick="openEdit('${item.id}')" class="text-sm" style="color:var(--teal);">Edit</button>
+          <button onclick="del('${item.id}')" class="text-expense text-sm">${dict.btnDelete}</button>
         </div>
       </div>
     `;
@@ -900,29 +990,29 @@ function renderList(){
   })
 }
 
-function del(id){
+async function del(id){
   const dict = i18nTexts[currentLang];
   const idx = bills.findIndex(x=>x.id===id);
   if(idx === -1) return;
   const removed = bills[idx];
   bills.splice(idx,1);
-  saveLocal();
   renderList();
   renderDashboard();
-  showUndoToast(dict.deletedMsg, ()=>{
+  await window.fb.deleteBillDoc(currentUid, id);
+  showUndoToast(dict.deletedMsg, async ()=>{
     bills.splice(idx,0,removed);
-    saveLocal();
     renderList();
     renderDashboard();
+    const { id: _drop, ...data } = removed;
+    await window.fb.setBill(currentUid, id, data);
   });
 }
 
-function duplicateBill(id){
+async function duplicateBill(id){
   const dict = i18nTexts[currentLang];
   const item = bills.find(x=>x.id===id);
   if(!item) return;
-  bills.unshift({
-    id: Date.now()+Math.random(),
+  const billData = {
     date: new Date().toISOString().slice(0,10),
     type: item.type,
     category: item.category,
@@ -930,8 +1020,9 @@ function duplicateBill(id){
     note: item.note,
     reimb: item.reimb,
     recurringId: null
-  });
-  saveLocal();
+  };
+  const newId = await window.fb.addBill(currentUid, billData);
+  bills.unshift({ id:newId, ...billData });
   renderList();
   renderDashboard();
   showToast(dict.dupMsg);
@@ -963,8 +1054,8 @@ function closeModal(){
   document.getElementById("editModal").classList.add("hidden");
   document.body.classList.remove("modal-open");
 }
-function updateBill(){
-  const id = Number(document.getElementById("editId").value);
+async function updateBill(){
+  const id = document.getElementById("editId").value;
   const obj = bills.find(x=>x.id===id);
   obj.date = document.getElementById("e-date").value;
   obj.type = document.getElementById("e-type").value;
@@ -978,7 +1069,9 @@ function updateBill(){
     obj.reimb = null;
   }
 
-  saveLocal();closeModal();renderList();renderDashboard();
+  closeModal();renderList();renderDashboard();
+  const { id: _drop, ...data } = obj;
+  await window.fb.updateBillDoc(currentUid, id, data);
 }
 
 let statPeriod = "month";
@@ -1167,7 +1260,7 @@ function parseCSVRow(line){
   return result;
 }
 
-function exportCSV(){
+async function exportCSV(){
   let str = "\uFEFFdate,type,category,amount,note,reimbursement\n";
   bills.forEach(b=>{
     const escape = (s) => `"${String(s).replace(/"/g,'""')}"`;
@@ -1180,15 +1273,16 @@ function exportCSV(){
   const today = new Date().toISOString().slice(0,10);
   a.download=`ledger-backup-${today}.csv`;
   a.click();
-  localStorage.setItem("lastExportDate", new Date().toISOString());
+  lastExportDate = new Date().toISOString();
+  await window.fb.setUserMeta(currentUid, { lastExportDate });
   renderBackupNote();
 }
 
-document.getElementById("fileImport").onchange=function(e){
+document.getElementById("fileImport").onchange=async function(e){
   const dict = i18nTexts[currentLang];
   const f = e.target.files[0];
   const r = new FileReader();
-  r.onload=ev=>{
+  r.onload=async ev=>{
     const allLines = ev.target.result.split(/\r?\n/);
     let imported = [];
     for(let i=1;i<allLines.length;i++){
@@ -1199,7 +1293,6 @@ document.getElementById("fileImport").onchange=function(e){
       const amt = parseFloat(cells[3]);
       if(isNaN(amt) || amt <=0) continue;
       imported.push({
-        id: Date.now() + Math.random(),
         date: cells[0],
         type: cells[1],
         category: cells[2],
@@ -1209,8 +1302,9 @@ document.getElementById("fileImport").onchange=function(e){
         recurringId:null
       })
     }
-    bills = imported.concat(bills);
-    saveLocal();
+    const newIds = await window.fb.bulkAddBills(currentUid, imported);
+    const withIds = imported.map((b,i)=> ({ id:newIds[i], ...b }));
+    bills = withIds.concat(bills);
     showToast(dict.alertImportOk);
     renderList();
     renderDashboard();
@@ -1219,15 +1313,86 @@ document.getElementById("fileImport").onchange=function(e){
   this.value = "";
 }
 
-document.addEventListener('DOMContentLoaded', function(){
+// ---------- Auth flow ----------
+let authMode = "signin";
+function toggleAuthMode(){
+  const dict = i18nTexts[currentLang];
+  authMode = authMode === "signin" ? "signup" : "signin";
+  document.getElementById("authSubmitBtn").innerText = authMode === "signin" ? dict.authSignIn : dict.authSignUp;
+  document.getElementById("authToggleBtn").innerText = authMode === "signin" ? dict.authNeedAccount : dict.authHaveAccount;
+  document.getElementById("authSubtitle").innerText = authMode === "signin" ? dict.authSubtitleIn : dict.authSubtitleUp;
+  document.getElementById("authError").classList.add("hidden");
+}
+async function handleAuthSubmit(){
+  const dict = i18nTexts[currentLang];
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const errEl = document.getElementById("authError");
+  errEl.classList.add("hidden");
+  if(!email || !password){
+    errEl.innerText = dict.authFillBoth;
+    errEl.classList.remove("hidden");
+    return;
+  }
+  try{
+    if(authMode === "signin"){
+      await window.fb.signIn(email, password);
+    }else{
+      await window.fb.signUp(email, password);
+    }
+  }catch(e){
+    errEl.innerText = e.message.replace(/^Firebase:\s*/,"");
+    errEl.classList.remove("hidden");
+  }
+}
+function handleSignOut(){
+  window.fb.signOutUser();
+}
+
+async function bootApp(uid){
+  currentUid = uid;
+  const data = await window.fb.loadUserData(uid);
+  bills = data.bills;
+  recurring = data.recurring;
+  monthlyBudget = data.monthlyBudget;
+  currentCurrency = data.currency;
+  lastExportDate = data.lastExportDate;
+  document.getElementById("currencySelect").value = currentCurrency;
+
+  await applyRecurring();
   document.getElementById("date").valueAsDate = new Date();
-  applyRecurring();
+  document.querySelectorAll('.stat-period-btn').forEach(b=>b.classList.remove("active"));
   document.querySelector('.stat-period-btn[data-period="month"]').classList.add("active");
+  statPeriod = "month";
   setLanguage(currentLang);
   toggleReimbUI();
   renderDashboard();
   renderRecurring();
+}
+
+function resetAppState(){
+  currentUid = null;
+  bills = [];
+  recurring = [];
+  monthlyBudget = 0;
+  currentCurrency = "CNY";
+  lastExportDate = null;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  window.fb.onAuthChange((user)=>{
+    if(user){
+      document.getElementById("authScreen").classList.add("hidden");
+      document.getElementById("appRoot").classList.remove("hidden");
+      bootApp(user.uid);
+    }else{
+      resetAppState();
+      document.getElementById("appRoot").classList.add("hidden");
+      document.getElementById("authScreen").classList.remove("hidden");
+    }
+  });
 });
 </script>
+</div>
 </body>
 </html>
