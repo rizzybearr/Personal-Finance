@@ -294,6 +294,7 @@ tailwind.config = {
       <input type="checkbox" id="repeatMonthly" class="w-4 h-4 rounded" style="accent-color:var(--teal);">
       <span data-i18n="labelRepeat">Repeat monthly</span>
     </label>
+    <p class="text-[11px] text-slate-400 -mt-2" data-i18n="labelRepeatHint">Auto-added each month until you delete it below — won't affect months already recorded.</p>
     <button onclick="saveBill()" class="w-full text-white py-3.5 rounded-xl font-medium shadow-sm active:scale-[0.99] transition-all" style="background:var(--teal);" data-i18n="btnSave">Save</button>
   </div>
 
@@ -353,6 +354,12 @@ tailwind.config = {
     <div id="last7Chart" class="flex items-end justify-between gap-2 h-24"></div>
   </div>
 
+  <div class="card card-gradient-teal p-5">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="titleReimbPie">Reimbursement Status</p>
+    <canvas id="reimbBarChart"></canvas>
+    <p id="noReimbBars" class="hidden text-center text-sm text-slate-400 py-6" data-i18n="noReimbItems">No reimbursement-tracked bills yet.</p>
+  </div>
+
   <div class="flex gap-3 mb-4">
     <button onclick="exportCSV()" class="flex-1 py-2.5 rounded-xl shadow-sm text-white font-medium" style="background:var(--moss);" data-i18n="btnExport">Export CSV</button>
     <label class="flex-1 py-2.5 rounded-xl text-center cursor-pointer shadow-sm text-white font-medium" style="background:#8A8578;" data-i18n="btnImport">
@@ -363,12 +370,15 @@ tailwind.config = {
   <p id="backupNote" class="text-[12px] text-slate-400 mb-3"></p>
 
   <div class="card p-3 space-y-2">
-    <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="Search notes or category" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
+    <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="Search notes, category, or reimbursement status" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
     <div class="flex gap-2 items-center">
       <input type="date" id="filterFrom" class="flex-1 border border-slate-200 rounded-xl p-2 text-sm">
       <span class="text-slate-400 text-sm">–</span>
       <input type="date" id="filterTo" class="flex-1 border border-slate-200 rounded-xl p-2 text-sm">
-      <button onclick="clearFilters()" class="text-sm px-2" style="color:var(--teal);" data-i18n="btnClear">Clear</button>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button onclick="clearFilters()" class="text-sm px-3 py-1.5" style="color:var(--ink-soft);" data-i18n="btnClear">Clear</button>
+      <button onclick="renderList()" class="text-sm px-3 py-1.5 rounded-lg text-white font-medium" style="background:var(--teal);" data-i18n="btnGo">Go</button>
     </div>
   </div>
 
@@ -408,15 +418,9 @@ tailwind.config = {
     </div>
   </div>
 
-  <div class="card card-gradient-amber p-5 mb-4">
+  <div class="card card-gradient-amber p-5">
     <canvas id="pieChartExp"></canvas>
     <div id="expCatLegend" class="space-y-2 mt-4"></div>
-  </div>
-
-  <div class="card card-gradient-teal p-5">
-    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="titleReimbPie">Reimbursement Status</p>
-    <canvas id="reimbBarChart"></canvas>
-    <p id="noReimbBars" class="hidden text-center text-sm text-slate-400 py-6" data-i18n="noReimbItems">No reimbursement-tracked bills in this period.</p>
   </div>
 </div>
 
@@ -540,7 +544,8 @@ const i18nTexts = {
     reimbNone:"不可报销",reimbPending:"待报销",reimbDone:"已报销",
     btnSave:"保存记录",btnExport:"导出CSV",btnImport:"导入CSV",
     btnCancel:"取消",btnUpdate:"保存修改",btnDelete:"删除",btnUndo:"撤销",deletedMsg:"记录已删除",
-    btnDup:"复制",dupMsg:"已复制该记录",searchPh:"搜索备注或类别",btnClear:"清除",noResults:"没有匹配的记录",
+    btnDup:"复制",dupMsg:"已复制该记录",searchPh:"搜索备注、类别或报销状态",btnClear:"清除",btnGo:"确定",noResults:"没有匹配的记录",
+    labelRepeatHint:"每月自动添加，直到您删除为止 — 不会影响已记录的月份。",
     monthSummary:"本月汇总",totalExp:"总支出",totalInc:"总收入",
     periodWeek:"本周", periodMonth:"本月", periodYear:"本年",
     weekSummary:"本周汇总", yearSummary:"本年汇总",
@@ -552,7 +557,7 @@ const i18nTexts = {
     alertImportOk:"导入完成！切换到账单列表查看",
     titleExpCatPie:"支出分类占比",
     titleReimbPie:"报销分布",
-    savingsTitle:"结余情况", netSavings:"净结余", savingsRate:"结余率", noReimbItems:"该周期内没有报销记录的账单。",
+    savingsTitle:"结余情况", netSavings:"净结余", savingsRate:"结余率", noReimbItems:"暂无报销记录的账单。",
     budgetTitle:"本月预算", btnEditBudget:"编辑", lblSpent:"已花费", lblBudget:"预算",
     lblRemaining:"剩余", labelBudget:"每月预算", btnSave2:"保存", overBudget:"已超支",
     newEntry:"新增记录", last7Title:"最近7天", emptyList:"暂无记录，去记账页添加第一笔吧",
@@ -580,7 +585,8 @@ const i18nTexts = {
     reimbNone:"No reimb",reimbPending:"Pending",reimbDone:"Reimbursed",
     btnSave:"Save",btnExport:"Export CSV",btnImport:"Import CSV",
     btnCancel:"Cancel",btnUpdate:"Update",btnDelete:"Delete",btnUndo:"Undo",deletedMsg:"Record deleted",
-    btnDup:"Copy",dupMsg:"Entry duplicated",searchPh:"Search notes or category",btnClear:"Clear",noResults:"No matching records.",
+    btnDup:"Copy",dupMsg:"Entry duplicated",searchPh:"Search notes, category, or reimbursement status",btnClear:"Clear",btnGo:"Go",noResults:"No matching records.",
+    labelRepeatHint:"Auto-added each month until you delete it below — won't affect months already recorded.",
     monthSummary:"This Month Summary",totalExp:"Total Expense",totalInc:"Total Income",
     periodWeek:"Week", periodMonth:"Month", periodYear:"Year",
     weekSummary:"This Week Summary", yearSummary:"This Year Summary",
@@ -592,7 +598,7 @@ const i18nTexts = {
     alertImportOk:"Import finished! Switch to bills list",
     titleExpCatPie:"Expense Category Breakdown",
     titleReimbPie:"Reimbursement Status",
-    savingsTitle:"Savings", netSavings:"Net Savings", savingsRate:"Savings Rate", noReimbItems:"No reimbursement-tracked bills in this period.",
+    savingsTitle:"Savings", netSavings:"Net Savings", savingsRate:"Savings Rate", noReimbItems:"No reimbursement-tracked bills yet.",
     budgetTitle:"Monthly Budget", btnEditBudget:"Edit", lblSpent:"Spent", lblBudget:"Budget",
     lblRemaining:"Remaining", labelBudget:"Monthly budget", btnSave2:"Save", overBudget:"Over budget",
     newEntry:"New Entry", last7Title:"Last 7 Days", emptyList:"No records yet. Add your first entry on the Record tab.",
@@ -942,18 +948,38 @@ function renderDashboard(){
     `;
     wrap.appendChild(col);
   });
+
+  renderReimbChart();
 }
 
+function reimbLabelFor(item){
+  const dict = i18nTexts[currentLang];
+  if(item.type !== "exp") return "";
+  const status = item.reimb || "none";
+  return (status === "pending" ? dict.reimbPending : status === "done" ? dict.reimbDone : dict.reimbNone).toLowerCase();
+}
 function getFilteredBills(){
   const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
   const from = document.getElementById("filterFrom").value;
   const to = document.getElementById("filterTo").value;
   return bills.filter(item=>{
-    if(q && !( (item.note||"").toLowerCase().includes(q) || (item.category||"").toLowerCase().includes(q) )) return false;
+    if(q){
+      const matches = (item.note||"").toLowerCase().includes(q)
+        || (item.category||"").toLowerCase().includes(q)
+        || reimbLabelFor(item).includes(q);
+      if(!matches) return false;
+    }
     if(from && item.date < from) return false;
     if(to && item.date > to) return false;
     return true;
   });
+}
+function setDefaultDateRange(){
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate()-6);
+  document.getElementById("filterFrom").value = from.toISOString().slice(0,10);
+  document.getElementById("filterTo").value = to.toISOString().slice(0,10);
 }
 function clearFilters(){
   document.getElementById("searchInput").value = "";
@@ -1019,7 +1045,7 @@ async function cycleReimb(id){
   const idx = order.indexOf(item.reimb || null);
   item.reimb = order[(idx+1) % order.length];
   renderList();
-  renderStat();
+  renderReimbChart();
   const { id: _drop, ...data } = item;
   await window.fb.updateBillDoc(currentUid, id, data);
 }
@@ -1258,9 +1284,12 @@ function renderStat(){
       `;
       legendWrap.appendChild(line);
     });
+}
 
-  // ---- Reimbursement bar chart: one bar per tracked bill ----
-  const reimbItems = monthData
+function renderReimbChart(){
+  const dict = i18nTexts[currentLang];
+  const locale = currentLang === "zh" ? "zh-CN" : "en-US";
+  const reimbItems = bills
     .filter(b=> b.type==="exp" && (b.reimb==="pending" || b.reimb==="done"))
     .sort((a,b)=> a.date.localeCompare(b.date));
 
@@ -1417,6 +1446,7 @@ async function bootApp(uid){
 
   await applyRecurring();
   document.getElementById("date").valueAsDate = new Date();
+  setDefaultDateRange();
   document.querySelectorAll('.stat-period-btn').forEach(b=>b.classList.remove("active"));
   document.querySelector('.stat-period-btn[data-period="month"]').classList.add("active");
   statPeriod = "month";
