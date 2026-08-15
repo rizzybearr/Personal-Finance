@@ -392,15 +392,31 @@ tailwind.config = {
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="selfPay">Self Paid</span>：<span id="sumSelfPay" style="color:var(--teal);" class="font-bold text-xl font-num">0.00</span></p>
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalInc">Total Income</span>：<span id="sumInc" class="text-income font-bold text-xl font-num">0.00</span></p>
   </div>
+
+  <div class="card card-gradient-amber p-5 mb-4">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="savingsTitle">Savings</p>
+    <canvas id="chartSavings" height="70"></canvas>
+    <div class="flex justify-between mt-4 pt-3" style="border-top:1px solid var(--line);">
+      <div>
+        <p class="text-[12px] text-slate-400" data-i18n="netSavings">Net Savings</p>
+        <p id="netSavingsVal" class="font-num font-bold text-lg">¥0.00</p>
+      </div>
+      <div class="text-right">
+        <p class="text-[12px] text-slate-400" data-i18n="savingsRate">Savings Rate</p>
+        <p id="savingsRateVal" class="font-num font-bold text-lg">0%</p>
+      </div>
+    </div>
+  </div>
+
   <div class="card card-gradient-amber p-5 mb-4">
     <canvas id="pieChartExp"></canvas>
+    <div id="expCatLegend" class="space-y-2 mt-4"></div>
   </div>
+
   <div class="card card-gradient-teal p-5">
-    <canvas id="pieChartReimb"></canvas>
-  </div>
-  <div class="card card-gradient-amber p-5 mt-4">
-    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="trendTitle">6-Month Trend</p>
-    <canvas id="lineChartTrend"></canvas>
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="titleReimbPie">Reimbursement Status</p>
+    <canvas id="reimbBarChart"></canvas>
+    <p id="noReimbBars" class="hidden text-center text-sm text-slate-400 py-6" data-i18n="noReimbItems">No reimbursement-tracked bills in this period.</p>
   </div>
 </div>
 
@@ -536,7 +552,7 @@ const i18nTexts = {
     alertImportOk:"导入完成！切换到账单列表查看",
     titleExpCatPie:"支出分类占比",
     titleReimbPie:"报销分布",
-    trendTitle:"近6个月趋势",
+    savingsTitle:"结余情况", netSavings:"净结余", savingsRate:"结余率", noReimbItems:"该周期内没有报销记录的账单。",
     budgetTitle:"本月预算", btnEditBudget:"编辑", lblSpent:"已花费", lblBudget:"预算",
     lblRemaining:"剩余", labelBudget:"每月预算", btnSave2:"保存", overBudget:"已超支",
     newEntry:"新增记录", last7Title:"最近7天", emptyList:"暂无记录，去记账页添加第一笔吧",
@@ -576,7 +592,7 @@ const i18nTexts = {
     alertImportOk:"Import finished! Switch to bills list",
     titleExpCatPie:"Expense Category Breakdown",
     titleReimbPie:"Reimbursement Status",
-    trendTitle:"6-Month Trend",
+    savingsTitle:"Savings", netSavings:"Net Savings", savingsRate:"Savings Rate", noReimbItems:"No reimbursement-tracked bills in this period.",
     budgetTitle:"Monthly Budget", btnEditBudget:"Edit", lblSpent:"Spent", lblBudget:"Budget",
     lblRemaining:"Remaining", labelBudget:"Monthly budget", btnSave2:"Save", overBudget:"Over budget",
     newEntry:"New Entry", last7Title:"Last 7 Days", emptyList:"No records yet. Add your first entry on the Record tab.",
@@ -623,7 +639,7 @@ function sym(){ return currencySymbols[currentCurrency] || "¥"; }
 
 let chartExpCat = null;
 let chartReimbStat = null;
-let chartTrend = null;
+let chartSavings = null;
 
 document.getElementById("currencySelect").onchange = function(){
   currentCurrency = this.value;
@@ -961,9 +977,15 @@ function renderList(){
     const div = document.createElement("div");
     div.className="card item-card p-4 flex justify-between items-center transition-transform";
     let tagHtml = "";
-    if(item.type==="exp" && item.reimb){
-      if(item.reimb==="pending") tagHtml = `<span class="tag" style="background:var(--amber-soft); color:var(--amber);">${dict.reimbPending}</span>`;
-      if(item.reimb==="done") tagHtml = `<span class="tag" style="background:var(--moss-soft); color:var(--moss);">${dict.reimbDone}</span>`;
+    if(item.type==="exp"){
+      const status = item.reimb || "none";
+      const styles = {
+        none: "background:transparent;color:var(--ink-soft);border:1px dashed var(--line);",
+        pending: "background:#8A857822;color:#8A8578;",
+        done: "background:var(--moss-soft);color:var(--moss);"
+      };
+      const labels = { none: dict.reimbNone, pending: dict.reimbPending, done: dict.reimbDone };
+      tagHtml = `<span class="tag" style="${styles[status]} cursor:pointer;" onclick="event.stopPropagation(); cycleReimb('${item.id}')">${labels[status]}</span>`;
     }
     div.innerHTML=`
       <div class="flex items-center gap-3">
@@ -988,6 +1010,18 @@ function renderList(){
     `;
     wrap.appendChild(div);
   })
+}
+
+async function cycleReimb(id){
+  const item = bills.find(x=>x.id===id);
+  if(!item || item.type!=="exp") return;
+  const order = [null, "pending", "done"];
+  const idx = order.indexOf(item.reimb || null);
+  item.reimb = order[(idx+1) % order.length];
+  renderList();
+  renderStat();
+  const { id: _drop, ...data } = item;
+  await window.fb.updateBillDoc(currentUid, id, data);
 }
 
 async function del(id){
@@ -1121,6 +1155,7 @@ function getPeriodLabel(period){
 
 function renderStat(){
   const dict = i18nTexts[currentLang];
+  const locale = currentLang === "zh" ? "zh-CN" : "en-US";
   const inRange = getPeriodRange(statPeriod);
   const monthData = bills.filter(b=> inRange(new Date(b.date)));
   const titleKey = statPeriod==="week" ? "weekSummary" : statPeriod==="year" ? "yearSummary" : "monthSummary";
@@ -1132,15 +1167,11 @@ function renderStat(){
   const expList = getCatList("exp");
   expList.forEach(k=>catSum[k]=0);
 
-  let reimbPendingAmt=0, reimbNoneAmt=0;
-
   monthData.forEach(d=>{
     if(d.type==="exp"){
       sumExp += d.amount;
       catSum[d.category] += d.amount;
       if(d.reimb === "done") sumReimbDone += d.amount;
-      else if(d.reimb === "pending") reimbPendingAmt += d.amount;
-      else reimbNoneAmt += d.amount;
     }else{
       sumInc += d.amount;
     }
@@ -1151,6 +1182,35 @@ function renderStat(){
   document.getElementById("sumReimbDone").innerText=sumReimbDone.toFixed(2);
   document.getElementById("sumSelfPay").innerText=selfPay.toFixed(2);
 
+  // ---- Savings chart ----
+  const netSavings = sumInc - sumExp;
+  const savingsRate = sumInc > 0 ? (netSavings / sumInc * 100) : 0;
+  document.getElementById("netSavingsVal").innerText = sym() + netSavings.toFixed(2);
+  document.getElementById("netSavingsVal").style.color = netSavings < 0 ? "var(--rose)" : "var(--moss)";
+  document.getElementById("savingsRateVal").innerText = savingsRate.toFixed(0) + "%";
+  document.getElementById("savingsRateVal").style.color = netSavings < 0 ? "var(--rose)" : "var(--moss)";
+
+  if(chartSavings) chartSavings.destroy();
+  const savingsPositive = Math.max(netSavings, 0);
+  const barMax = Math.max(sumInc, sumExp, 1);
+  chartSavings = new Chart(document.getElementById("chartSavings"),{
+    type:"bar",
+    data:{
+      labels:[dict.totalInc, dict.totalExp],
+      datasets:[{
+        data:[sumInc, sumExp],
+        backgroundColor:['#3F6B3A','#B3261E'],
+        borderRadius:6
+      }]
+    },
+    options:{
+      indexAxis:"y",
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ beginAtZero:true, max: barMax*1.1 } }
+    }
+  })
+
+  // ---- Expense category pie + % legend ----
   const labelsCat=[];
   const dataCat=[];
   const colorsCat=[];
@@ -1161,6 +1221,7 @@ function renderStat(){
       colorsCat.push(catColor(k));
     }
   }
+  const catTotal = dataCat.reduce((s,v)=>s+v,0);
 
   if(chartExpCat) chartExpCat.destroy();
   chartExpCat = new Chart(document.getElementById("pieChartExp"),{
@@ -1175,71 +1236,66 @@ function renderStat(){
     options:{
       plugins:{
         title:{display:true,text:dict.titleExpCatPie},
-        legend:{position:"bottom"}
+        legend:{display:false}
       }
     }
   })
+
+  const legendWrap = document.getElementById("expCatLegend");
+  legendWrap.innerHTML = "";
+  labelsCat
+    .map((label,i)=>({ label, val:dataCat[i], color:colorsCat[i] }))
+    .sort((a,b)=> b.val-a.val)
+    .forEach(row=>{
+      const pct = catTotal>0 ? (row.val/catTotal*100) : 0;
+      const line = document.createElement("div");
+      line.className = "flex items-center gap-2 text-sm";
+      line.innerHTML = `
+        <span style="width:10px;height:10px;border-radius:3px;background:${row.color};flex-shrink:0;"></span>
+        <span class="flex-1">${row.label}</span>
+        <span class="font-num text-slate-500">${pct.toFixed(0)}%</span>
+        <span class="font-num font-medium w-20 text-right">${sym()}${row.val.toFixed(2)}</span>
+      `;
+      legendWrap.appendChild(line);
+    });
+
+  // ---- Reimbursement bar chart: one bar per tracked bill ----
+  const reimbItems = monthData
+    .filter(b=> b.type==="exp" && (b.reimb==="pending" || b.reimb==="done"))
+    .sort((a,b)=> a.date.localeCompare(b.date));
+
+  document.getElementById("noReimbBars").classList.toggle("hidden", reimbItems.length>0);
+  document.getElementById("reimbBarChart").classList.toggle("hidden", reimbItems.length===0);
 
   if(chartReimbStat) chartReimbStat.destroy();
-  const reimbDataArr = [reimbNoneAmt, reimbPendingAmt, sumReimbDone];
-  chartReimbStat = new Chart(document.getElementById("pieChartReimb"),{
-    type:"pie",
-    data:{
-      labels:[dict.reimbNone, dict.reimbPending, dict.reimbDone],
-      datasets:[{
-        data: reimbDataArr.some(v=>v>0) ? reimbDataArr : [1],
-        backgroundColor:['#8A8578','#B8860B','#3F6B3A']
-      }]
-    },
-    options:{
-      plugins:{
-        title:{display:true,text:dict.titleReimbPie},
-        legend:{position:"bottom"}
+  if(reimbItems.length>0){
+    chartReimbStat = new Chart(document.getElementById("reimbBarChart"),{
+      type:"bar",
+      data:{
+        labels: reimbItems.map(b=> new Date(b.date).toLocaleDateString(locale, {month:"short", day:"numeric"})),
+        datasets:[{
+          data: reimbItems.map(b=> b.amount),
+          backgroundColor: reimbItems.map(b=> b.reimb==="done" ? "#3F6B3A" : "#8A8578"),
+          borderRadius:5
+        }]
+      },
+      options:{
+        plugins:{
+          legend:{ display:false },
+          tooltip:{
+            callbacks:{
+              label:(ctx)=>{
+                const b = reimbItems[ctx.dataIndex];
+                const statusLabel = b.reimb==="done" ? dict.reimbDone : dict.reimbPending;
+                return `${b.category} · ${statusLabel}: ${sym()}${b.amount.toFixed(2)}`;
+              }
+            }
+          }
+        },
+        scales:{ y:{ beginAtZero:true } }
       }
-    }
-  })
-
-  renderTrendChart();
-}
-
-function renderTrendChart(){
-  const dict = i18nTexts[currentLang];
-  const locale = currentLang === "zh" ? "zh-CN" : "en-US";
-  const now = new Date();
-  const labels = [];
-  const data = [];
-  for(let i=5;i>=0;i--){
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    const y = d.getFullYear(), m = d.getMonth();
-    const total = bills.filter(b=>{
-      if(b.type!=="exp") return false;
-      const dt = new Date(b.date);
-      return dt.getFullYear()===y && dt.getMonth()===m;
-    }).reduce((s,b)=>s+b.amount,0);
-    labels.push(d.toLocaleDateString(locale, {month:"short"}));
-    data.push(total);
+    })
   }
-  if(chartTrend) chartTrend.destroy();
-  chartTrend = new Chart(document.getElementById("lineChartTrend"),{
-    type:"line",
-    data:{
-      labels,
-      datasets:[{
-        label: dict.totalExp,
-        data,
-        borderColor:"#0B4F4A",
-        backgroundColor:"rgba(11,79,74,0.12)",
-        tension:0.35,
-        fill:true,
-        pointBackgroundColor:"#0B4F4A",
-        pointRadius:4
-      }]
-    },
-    options:{
-      plugins:{ legend:{ display:false } },
-      scales:{ y:{ beginAtZero:true } }
-    }
-  })
 }
 
 function parseCSVRow(line){
