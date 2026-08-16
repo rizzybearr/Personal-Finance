@@ -16,7 +16,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    signOut, onAuthStateChanged
+    sendPasswordResetEmail, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import {
     getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
@@ -40,6 +40,7 @@
   window.fb = {
     signUp(email, password){ return createUserWithEmailAndPassword(auth, email, password); },
     signIn(email, password){ return signInWithEmailAndPassword(auth, email, password); },
+    resetPassword(email){ return sendPasswordResetEmail(auth, email); },
     signOutUser(){ return signOut(auth); },
     onAuthChange(cb){ onAuthStateChanged(auth, cb); },
 
@@ -91,7 +92,7 @@
       return ref.id;
     },
     async deleteRecurringDoc(uid, id){
-      await deleteDoc(doc(db, "users", uid, "recurring", id));
+      await deleteDoc(doc(db, "users", uid, "recurring"), id);
     },
     async setUserMeta(uid, partial){
       await setDoc(doc(db, "users", uid), partial, { merge:true });
@@ -209,6 +210,9 @@ tailwind.config = {
     <div class="card p-5 space-y-3">
       <input type="email" id="authEmail" data-i18n-placeholder="authEmailPh" placeholder="Email" class="w-full border border-slate-200 rounded-xl p-3">
       <input type="password" id="authPassword" data-i18n-placeholder="authPasswordPh" placeholder="Password" class="w-full border border-slate-200 rounded-xl p-3">
+      <div class="flex justify-end">
+        <button onclick="handlePasswordReset()" class="text-xs text-slate-400 hover:underline" data-i18n="authForgotPw">Forgot password?</button>
+      </div>
       <p id="authError" class="text-sm hidden" style="color:var(--rose);"></p>
       <button id="authSubmitBtn" onclick="handleAuthSubmit()" class="w-full text-white py-3 rounded-xl font-medium" style="background:var(--teal);" data-i18n="authSignIn">Sign In</button>
       <button onclick="toggleAuthMode()" class="w-full text-sm py-1" style="color:var(--teal);" id="authToggleBtn" data-i18n="authNeedAccount">Need an account? Sign up</button>
@@ -247,7 +251,7 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- Record 记账页面 -->
+<!-- Record Page -->
 <div id="page-add" class="p-4 fade-in space-y-4">
   <div class="card card-gradient-teal p-5 space-y-4">
     <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="newEntry">New Entry</p>
@@ -267,7 +271,6 @@ tailwind.config = {
       <select id="category" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all"></select>
     </div>
 
-    <!-- 报销优化：复选框控制显示下拉框 -->
     <div id="reimbToggleRow">
       <label class="flex items-center gap-2 text-sm text-slate-500">
         <input type="checkbox" id="hasReimbCheck" class="w-4 h-4 rounded" style="accent-color:var(--teal);">
@@ -298,14 +301,13 @@ tailwind.config = {
     <button onclick="saveBill()" class="w-full text-white py-3.5 rounded-xl font-medium shadow-sm active:scale-[0.99] transition-all" style="background:var(--teal);" data-i18n="btnSave">Save</button>
   </div>
 
-  <!-- Recurring entries management -->
   <div class="card card-gradient-amber p-5">
     <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="recurringTitle">Monthly Repeats</p>
     <div id="recurringList" class="space-y-2"></div>
   </div>
 </div>
 
-<!-- Bills账单页面【移入预算仪表盘 + 近7天图表】 -->
+<!-- Bills Page -->
 <div id="page-list" class="p-4 hidden fade-in space-y-4">
   <div id="budgetCard" class="card card-gradient-teal p-5">
     <div class="flex items-center justify-between mb-4">
@@ -378,7 +380,7 @@ tailwind.config = {
   <div id="emptyList" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="emptyList">No records yet. Add your first entry on the Record tab.</div>
 </div>
 
-<!-- 统计页面 -->
+<!-- Stats Page -->
 <div id="page-stat" class="p-4 hidden fade-in">
   <div class="flex gap-1.5 p-1 rounded-xl mb-4" style="background:var(--teal-soft);">
     <button data-period="week" onclick="setStatPeriod('week')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodWeek">Week</button>
@@ -429,7 +431,7 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<!-- Edit Modal -->
 <div id="editModal" class="fixed inset-0 bg-black/45 hidden flex items-center justify-center p-4 z-50">
   <div class="rounded-2xl w-full max-w-md p-5 space-y-3.5 fade-in" style="margin-bottom: env(safe-area-inset-bottom); background:var(--card-bg); color:var(--ink);">
     <input type="hidden" id="editId"/>
@@ -460,7 +462,7 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- Custom confirm modal (native confirm()/alert() are unreliable in iOS standalone Home Screen apps) -->
+<!-- Confirm modal -->
 <div id="confirmModal" class="fixed inset-0 bg-black/45 hidden items-center justify-center p-4 z-50">
   <div class="rounded-2xl w-full max-w-xs p-5 text-center" style="animation:popIn .15s ease-out; background:var(--card-bg); color:var(--ink);">
     <p id="confirmMsg" class="text-[15px] mb-4"></p>
@@ -478,7 +480,6 @@ tailwind.config = {
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// ---------- Theme ----------
 function applyTheme(theme){
   document.documentElement.setAttribute("data-theme", theme);
   document.getElementById("themeToggle").innerText = theme === "dark" ? "☀️" : "🌙";
@@ -490,7 +491,6 @@ function toggleTheme(){
 }
 applyTheme(localStorage.getItem("myTheme") || "light");
 
-// ---------- In-app dialogs (native alert/confirm are unreliable in iOS standalone Home Screen apps) ----------
 let toastTimer = null;
 function showToast(msg){
   const el = document.getElementById("toast");
@@ -575,7 +575,8 @@ const i18nTexts = {
     catExp:["餐饮","旅行","猫咪","水电煤","交通","住房","购物","娱乐","医疗","教育","通讯","其他"],
     catInc:["工资","奖金","理财","兼职","红包","其他收入"],
     authSubtitleIn:"登录以同步您的数据", authSubtitleUp:"创建账户以同步您的数据",
-    authEmailPh:"邮箱", authPasswordPh:"密码",
+    authEmailPh:"邮箱", authPasswordPh:"密码", authForgotPw:"忘记密码？",
+    authResetSent:"重置密码邮件已发送，请检查收件箱", authFillEmail:"请先填写邮箱地址",
     authSignIn:"登录", authSignUp:"注册", authSignOut:"退出登录",
     authNeedAccount:"没有账户？去注册", authHaveAccount:"已有账户？去登录",
     authFillBoth:"请填写邮箱和密码"
@@ -616,14 +617,14 @@ const i18nTexts = {
     catExp:["Food","Travel","Pet Cat","Utility","Transportation","Housing","Shopping","Entertainment","Medical","Education","Telecom","Other"],
     catInc:["Salary","Bonus","Investment","Part-time","Gift","Other Income"],
     authSubtitleIn:"Sign in to sync your data", authSubtitleUp:"Create an account to sync your data",
-    authEmailPh:"Email", authPasswordPh:"Password",
+    authEmailPh:"Email", authPasswordPh:"Password", authForgotPw:"Forgot password?",
+    authResetSent:"Password reset email sent. Check your inbox.", authFillEmail:"Please enter your email address first",
     authSignIn:"Sign In", authSignUp:"Sign Up", authSignOut:"Sign out",
     authNeedAccount:"Need an account? Sign up", authHaveAccount:"Have an account? Sign in",
     authFillBoth:"Please fill in email and password"
   }
 };
 
-// colorful per-category accents + icons
 const catEmoji = {
   "Food":"🍜","Travel":"✈️","Pet Cat":"🐱","Utility":"💡","Transportation":"🚌","Housing":"🏠","Shopping":"🛍️","Entertainment":"🎬","Medical":"💊","Education":"📚","Telecom":"📱","Other":"🗂️",
   "餐饮":"🍜","旅行":"✈️","猫咪":"🐱","水电煤":"💡","交通":"🚌","住房":"🏠","购物":"🛍️","娱乐":"🎬","医疗":"💊","教育":"📚","通讯":"📱","其他":"🗂️",
@@ -631,8 +632,6 @@ const catEmoji = {
   "工资":"💰","奖金":"🎁","理财":"📈","兼职":"🧾","红包":"🧧","其他收入":"✨"
 };
 
-// Deterministic, non-repeating, light pastel color per category — index-based
-// (not hashed) so two categories never collide onto the same color.
 function hslToHex(h, s, l){
   s/=100; l/=100;
   const k = n => (n + h/30) % 12;
@@ -688,7 +687,6 @@ document.getElementById("currencySelect").onchange = function(){
   renderRecurring();
 };
 
-// tab下划线数组，对应 add / list / stat
 const underlineEls = document.querySelectorAll(".tab-underline");
 
 function setLanguage(lang){
@@ -732,7 +730,6 @@ function refreshCategory(){
   toggleReimbUI();
 }
 
-// 控制报销区域显隐
 function toggleReimbUI(){
   const typeVal = document.getElementById("type").value;
   const isExp = typeVal === "exp";
@@ -771,12 +768,10 @@ document.getElementById("langSelect").onchange = function(){
   setLanguage(this.value);
 }
 
-// tab切换 + 同步下划线active
 document.querySelectorAll("[data-page]").forEach((btn, idx)=>{
   btn.onclick=()=>{
     document.querySelectorAll("[data-page]").forEach(b=>{ b.classList.remove("tab-active"); });
     btn.classList.add("tab-active");
-    // 重置所有下划线
     underlineEls.forEach(u=>u.classList.remove("active"));
     underlineEls[idx].classList.add("active");
 
@@ -830,7 +825,6 @@ async function saveBill(){
   showToast(repeat ? dict.alertRecurSaved : dict.alertSaved);
 }
 
-// Auto-generate this month's instance of each recurring template, once per month
 async function applyRecurring(){
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth();
@@ -1177,7 +1171,7 @@ function setStatPeriod(p){
 }
 
 function getWeekBounds(now){
-  const day = now.getDay(); // 0=Sun..6=Sat
+  const day = now.getDay();
   const diffToMon = day===0 ? 6 : day-1;
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()-diffToMon);
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()-diffToMon+7);
@@ -1214,7 +1208,6 @@ function getPeriodLabel(period){
 
 function renderStat(){
   const dict = i18nTexts[currentLang];
-  const locale = currentLang === "zh" ? "zh-CN" : "en-US";
   const inRange = getPeriodRange(statPeriod);
   const monthData = bills.filter(b=> inRange(new Date(b.date)));
   const titleKey = statPeriod==="week" ? "weekSummary" : statPeriod==="year" ? "yearSummary" : "monthSummary";
@@ -1242,7 +1235,6 @@ function renderStat(){
   document.getElementById("sumInc").innerText=sumInc.toFixed(2);
   document.getElementById("sumReimbDone").innerText=sumReimbDone.toFixed(2);
 
-  // ---- Savings chart ----
   const netSavings = sumInc - sumExp;
   const savingsRate = sumInc > 0 ? (netSavings / sumInc * 100) : 0;
   document.getElementById("netSavingsVal").innerText = sym() + netSavings.toFixed(2);
@@ -1251,7 +1243,6 @@ function renderStat(){
   document.getElementById("savingsRateVal").style.color = netSavings < 0 ? "var(--rose)" : "var(--moss)";
 
   if(chartSavings) chartSavings.destroy();
-  const savingsPositive = Math.max(netSavings, 0);
   const barMax = Math.max(sumInc, sumExp, 1);
   chartSavings = new Chart(document.getElementById("chartSavings"),{
     type:"bar",
@@ -1270,7 +1261,6 @@ function renderStat(){
     }
   })
 
-  // ---- Expense category pie + % legend ----
   const labelsCat=[];
   const dataCat=[];
   const colorsCat=[];
@@ -1432,7 +1422,6 @@ document.getElementById("fileImport").onchange=async function(e){
   this.value = "";
 }
 
-// ---------- Auth flow ----------
 let authMode = "signin";
 function toggleAuthMode(){
   const dict = i18nTexts[currentLang];
@@ -1442,6 +1431,28 @@ function toggleAuthMode(){
   document.getElementById("authSubtitle").innerText = authMode === "signin" ? dict.authSubtitleIn : dict.authSubtitleUp;
   document.getElementById("authError").classList.add("hidden");
 }
+
+async function handlePasswordReset(){
+  const dict = i18nTexts[currentLang];
+  const email = document.getElementById("authEmail").value.trim();
+  const errEl = document.getElementById("authError");
+  errEl.classList.add("hidden");
+
+  if(!email){
+    errEl.innerText = dict.authFillEmail;
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  try{
+    await window.fb.resetPassword(email);
+    showToast(dict.authResetSent);
+  }catch(e){
+    errEl.innerText = e.message.replace(/^Firebase:\s*/, "");
+    errEl.classList.remove("hidden");
+  }
+}
+
 async function handleAuthSubmit(){
   const dict = i18nTexts[currentLang];
   const email = document.getElementById("authEmail").value.trim();
