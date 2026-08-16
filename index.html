@@ -198,7 +198,7 @@ tailwind.config = {
 }
 </script>
 </head>
-<body class="max-w-lg mx-auto min-h-screen">
+<body class="max-w-5xl mx-auto min-h-screen px-0 md:px-6">
 
 <!-- Auth screen -->
 <div id="authScreen" class="fixed inset-0 z-40 flex items-center justify-center p-5" style="background:var(--paper);">
@@ -222,29 +222,29 @@ tailwind.config = {
 
 <div id="appRoot" class="hidden">
 <div class="sticky top-0 z-10 backdrop-blur-md" id="headerBar" style="background:var(--paper); opacity:0.97; border-bottom:1px solid var(--line);">
-  <div class="flex justify-between items-center px-4 pt-3">
-    <h1 class="text-[17px] font-bold tracking-tight" style="color:var(--ink);">Ledger</h1>
+  <div class="flex justify-between items-center px-4 pt-3 max-w-5xl mx-auto">
+    <h1 class="text-[17px] md:text-xl font-bold tracking-tight" style="color:var(--ink);">Ledger</h1>
     <div class="flex items-center gap-2">
       <button id="themeToggle" onclick="toggleTheme()" class="text-lg leading-none px-1" title="Toggle dark mode">🌙</button>
       <button onclick="handleSignOut()" class="text-sm px-1" style="color:var(--ink-soft);" data-i18n="authSignOut">Sign out</button>
-      <select id="currencySelect" class="border-0 bg-transparent text-sm text-slate-500">
+      <select id="currencySelect" class="border-0 bg-transparent text-sm text-slate-500 cursor-pointer">
         <option value="CNY">¥ CNY</option>
         <option value="USD">$ USD</option>
         <option value="EUR">€ EUR</option>
         <option value="GBP">£ GBP</option>
       </select>
-      <select id="langSelect" class="border-0 bg-transparent text-sm text-slate-500">
+      <select id="langSelect" class="border-0 bg-transparent text-sm text-slate-500 cursor-pointer">
         <option value="en">English</option>
         <option value="zh">中文</option>
       </select>
     </div>
   </div>
-  <div class="flex text-[15px]">
-    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500" data-page="add" data-i18n="tabBill">Record</button>
-    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500" data-page="list" data-i18n="tabList">Bills</button>
-    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500" data-page="stat" data-i18n="tabStat">Stats</button>
+  <div class="flex text-[15px] max-w-5xl mx-auto">
+    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500 cursor-pointer" data-page="add" data-i18n="tabBill">Record</button>
+    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500 cursor-pointer" data-page="list" data-i18n="tabList">Bills</button>
+    <button class="flex-1 pt-2 pb-2.5 text-center transition-colors relative text-slate-500 cursor-pointer" data-page="stat" data-i18n="tabStat">Stats</button>
   </div>
-  <div class="flex px-4">
+  <div class="flex px-4 max-w-5xl mx-auto">
     <div class="flex-1 flex justify-center"><div class="tab-underline active h-[2.5px] w-10 rounded-full" style="background:var(--teal);"></div></div>
     <div class="flex-1 flex justify-center"><div class="tab-underline h-[2.5px] w-10 rounded-full" style="background:var(--teal);"></div></div>
     <div class="flex-1 flex justify-center"><div class="tab-underline h-[2.5px] w-10 rounded-full" style="background:var(--teal);"></div></div>
@@ -252,34 +252,36 @@ tailwind.config = {
 </div>
 
 <!-- Record Page -->
-<div id="page-add" class="p-4 fade-in space-y-4">
+<div id="page-add" class="p-4 fade-in grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
   <div class="card card-gradient-teal p-5 space-y-4">
     <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="newEntry">New Entry</p>
-    <div>
-      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelDate">Date</label>
-      <input type="date" id="date" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
-    </div>
-    <div>
-      <label class="text-slate-500 text-sm block mb-1" data-i18n="labelType">Type</label>
-      <select id="type" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
-        <option value="exp" data-i18n="optExp">Expense</option>
-        <option value="inc" data-i18n="optInc">Income</option>
-      </select>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="text-slate-500 text-sm block mb-1" data-i18n="labelDate">Date</label>
+        <input type="date" id="date" class="w-full border border-slate-200 rounded-xl p-2.5 transition-all">
+      </div>
+      <div>
+        <label class="text-slate-500 text-sm block mb-1" data-i18n="labelType">Type</label>
+        <select id="type" class="w-full border border-slate-200 rounded-xl p-2.5 transition-all">
+          <option value="exp" data-i18n="optExp">Expense</option>
+          <option value="inc" data-i18n="optInc">Income</option>
+        </select>
+      </div>
     </div>
     <div>
       <label class="text-slate-500 text-sm block mb-1" data-i18n="labelCat">Category</label>
-      <select id="category" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all"></select>
+      <select id="category" class="w-full border border-slate-200 rounded-xl p-2.5 transition-all"></select>
     </div>
 
     <div id="reimbToggleRow">
-      <label class="flex items-center gap-2 text-sm text-slate-500">
+      <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer">
         <input type="checkbox" id="hasReimbCheck" class="w-4 h-4 rounded" style="accent-color:var(--teal);">
         <span data-i18n="labelHasReimb">Has reimbursement?</span>
       </label>
     </div>
     <div id="reimbRow" class="hidden">
       <label class="text-slate-500 text-sm block mb-1" data-i18n="labelReimb">Reimbursement Status</label>
-      <select id="reimbStatus" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
+      <select id="reimbStatus" class="w-full border border-slate-200 rounded-xl p-2.5 transition-all">
         <option value="pending" data-i18n="reimbPending">Pending</option>
         <option value="done" data-i18n="reimbDone">Reimbursed</option>
       </select>
@@ -287,18 +289,18 @@ tailwind.config = {
 
     <div>
       <label class="text-slate-500 text-sm block mb-1" data-i18n="labelAmount">Amount</label>
-      <input type="number" step="0.01" id="amount" placeholder="0.00" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all font-num">
+      <input type="number" step="0.01" id="amount" placeholder="0.00" class="w-full border border-slate-200 rounded-xl p-2.5 transition-all font-num">
     </div>
     <div>
       <label class="text-slate-500 text-sm block mb-1" data-i18n="labelNote">Note</label>
-      <input type="text" data-i18n-placeholder="phNote" placeholder="Optional note" id="note" class="w-full border border-slate-200 rounded-xl p-2.5 mt-1 transition-all">
+      <input type="text" data-i18n-placeholder="phNote" placeholder="Optional note" id="note" class="w-full border border-slate-200 rounded-xl p-2.5 transition-all">
     </div>
-    <label class="flex items-center gap-2 text-sm text-slate-500">
+    <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer">
       <input type="checkbox" id="repeatMonthly" class="w-4 h-4 rounded" style="accent-color:var(--teal);">
       <span data-i18n="labelRepeat">Repeat monthly</span>
     </label>
     <p class="text-[11px] text-slate-400 -mt-2" data-i18n="labelRepeatHint">Auto-added each month until you delete it below — won't affect months already recorded.</p>
-    <button onclick="saveBill()" class="w-full text-white py-3.5 rounded-xl font-medium shadow-sm active:scale-[0.99] transition-all" style="background:var(--teal);" data-i18n="btnSave">Save</button>
+    <button onclick="saveBill()" class="w-full text-white py-3.5 rounded-xl font-medium shadow-sm active:scale-[0.99] transition-all cursor-pointer" style="background:var(--teal);" data-i18n="btnSave">Save</button>
   </div>
 
   <div class="card card-gradient-amber p-5">
@@ -309,125 +311,136 @@ tailwind.config = {
 
 <!-- Bills Page -->
 <div id="page-list" class="p-4 hidden fade-in space-y-4">
-  <div id="budgetCard" class="card card-gradient-teal p-5">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-2">
-        <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="budgetTitle">Monthly Budget</p>
-        <span id="overBudgetTag" class="tag hidden" style="background:var(--rose-soft); color:var(--rose);" data-i18n="overBudget">Over budget</span>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+    <div id="budgetCard" class="card card-gradient-teal p-5 lg:col-span-2">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide" data-i18n="budgetTitle">Monthly Budget</p>
+          <span id="overBudgetTag" class="tag hidden" style="background:var(--rose-soft); color:var(--rose);" data-i18n="overBudget">Over budget</span>
+        </div>
+        <button onclick="openBudgetEdit()" class="text-[13px] font-medium cursor-pointer" style="color:var(--teal);" data-i18n="btnEditBudget">Edit</button>
       </div>
-      <button onclick="openBudgetEdit()" class="text-[13px] font-medium" style="color:var(--teal);" data-i18n="btnEditBudget">Edit</button>
-    </div>
-    <div class="flex items-center gap-5">
-      <svg width="88" height="88" viewBox="0 0 88 88" class="shrink-0">
-        <circle cx="44" cy="44" r="38" fill="none" stroke="var(--line)" stroke-width="9"/>
-        <circle id="budgetRing" class="ring-fg" cx="44" cy="44" r="38" fill="none" stroke="var(--teal)" stroke-width="9"
-          stroke-linecap="round" transform="rotate(-90 44 44)" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
-        <text id="budgetPct" x="44" y="49" text-anchor="middle" font-size="18" font-weight="700" fill="#171A1C" class="font-num">0%</text>
-      </svg>
-      <div class="flex-1 space-y-2">
-        <div class="flex justify-between items-baseline">
-          <span class="text-[13px] text-slate-500" data-i18n="lblSpent">Spent</span>
-          <span id="dashSpent" class="font-num font-semibold text-[15px]">¥0.00</span>
-        </div>
-        <div class="flex justify-between items-baseline">
-          <span class="text-[13px] text-slate-500" data-i18n="lblBudget">Budget</span>
-          <span id="dashBudget" class="font-num text-[15px] text-slate-600">¥0.00</span>
-        </div>
-        <div class="h-px" style="background:var(--line);"></div>
-        <div class="flex justify-between items-baseline">
-          <span class="text-[13px] font-medium" data-i18n="lblRemaining">Remaining</span>
-          <span id="dashRemaining" class="font-num font-bold text-[17px]">¥0.00</span>
+      <div class="flex items-center gap-5">
+        <svg width="88" height="88" viewBox="0 0 88 88" class="shrink-0">
+          <circle cx="44" cy="44" r="38" fill="none" stroke="var(--line)" stroke-width="9"/>
+          <circle id="budgetRing" class="ring-fg" cx="44" cy="44" r="38" fill="none" stroke="var(--teal)" stroke-width="9"
+            stroke-linecap="round" transform="rotate(-90 44 44)" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+          <text id="budgetPct" x="44" y="49" text-anchor="middle" font-size="18" font-weight="700" fill="#171A1C" class="font-num">0%</text>
+        </svg>
+        <div class="flex-1 space-y-2">
+          <div class="flex justify-between items-baseline">
+            <span class="text-[13px] text-slate-500" data-i18n="lblSpent">Spent</span>
+            <span id="dashSpent" class="font-num font-semibold text-[15px]">¥0.00</span>
+          </div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-[13px] text-slate-500" data-i18n="lblBudget">Budget</span>
+            <span id="dashBudget" class="font-num text-[15px] text-slate-600">¥0.00</span>
+          </div>
+          <div class="h-px" style="background:var(--line);"></div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-[13px] font-medium" data-i18n="lblRemaining">Remaining</span>
+            <span id="dashRemaining" class="font-num font-bold text-[17px]">¥0.00</span>
+          </div>
         </div>
       </div>
+      <p class="text-[11px] text-slate-400 mt-3" data-i18n="currencyNote">Currency symbol only — amounts are not converted.</p>
     </div>
-    <p class="text-[11px] text-slate-400 mt-3" data-i18n="currencyNote">Currency symbol only — amounts are not converted.</p>
+
+    <div class="card card-gradient-amber p-5 lg:col-span-1">
+      <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-4" data-i18n="last7Title">Last 7 Days</p>
+      <div id="last7Chart" class="flex items-end justify-between gap-2 h-24"></div>
+    </div>
   </div>
 
   <div id="budgetEditRow" class="card p-4 hidden">
     <label class="text-slate-500 text-[13px] block mb-1.5" data-i18n="labelBudget">Monthly budget</label>
     <div class="flex gap-2">
       <input type="number" step="0.01" id="budgetInput" placeholder="0.00" class="flex-1 border border-slate-200 rounded-xl p-2.5">
-      <button onclick="saveBudget()" class="px-4 rounded-xl text-white font-medium" style="background:var(--teal);" data-i18n="btnSave2">Save</button>
+      <button onclick="saveBudget()" class="px-4 rounded-xl text-white font-medium cursor-pointer" style="background:var(--teal);" data-i18n="btnSave2">Save</button>
     </div>
   </div>
 
-  <div class="card card-gradient-amber p-5">
-    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-4" data-i18n="last7Title">Last 7 Days</p>
-    <div id="last7Chart" class="flex items-end justify-between gap-2 h-24"></div>
-  </div>
-
-  <div class="card card-gradient-teal p-5">
-    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="titleReimbPie">Reimbursement Status</p>
-    <canvas id="reimbBarChart"></canvas>
-    <p id="noReimbBars" class="hidden text-center text-sm text-slate-400 py-6" data-i18n="noReimbItems">No reimbursement-tracked bills yet.</p>
-  </div>
-
-  <div class="card p-3 space-y-2">
-    <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="Search notes, category, or reimbursement status" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
-    <div class="flex gap-2 items-center">
-      <input type="date" id="filterFrom" class="flex-1 border border-slate-200 rounded-xl p-2 text-sm">
-      <span class="text-slate-400 text-sm">–</span>
-      <input type="date" id="filterTo" class="flex-1 border border-slate-200 rounded-xl p-2 text-sm">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+    <div class="card card-gradient-teal p-5 lg:col-span-1">
+      <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="titleReimbPie">Reimbursement Status</p>
+      <canvas id="reimbBarChart"></canvas>
+      <p id="noReimbBars" class="hidden text-center text-sm text-slate-400 py-6" data-i18n="noReimbItems">No reimbursement-tracked bills yet.</p>
     </div>
-    <div class="flex gap-2 justify-end">
-      <button onclick="clearFilters()" class="text-sm px-3 py-1.5" style="color:var(--ink-soft);" data-i18n="btnClear">Clear</button>
-      <button onclick="renderList()" class="text-sm px-3 py-1.5 rounded-lg text-white font-medium" style="background:var(--teal);" data-i18n="btnGo">Go</button>
+
+    <div class="space-y-4 lg:col-span-2">
+      <div class="card p-3 space-y-2">
+        <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="Search notes, category, or reimbursement status" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
+        <div class="flex flex-col sm:flex-row gap-2 items-center">
+          <input type="date" id="filterFrom" class="w-full sm:flex-1 border border-slate-200 rounded-xl p-2 text-sm">
+          <span class="text-slate-400 text-sm hidden sm:inline">–</span>
+          <input type="date" id="filterTo" class="w-full sm:flex-1 border border-slate-200 rounded-xl p-2 text-sm">
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button onclick="clearFilters()" class="text-sm px-3 py-1.5 cursor-pointer" style="color:var(--ink-soft);" data-i18n="btnClear">Clear</button>
+          <button onclick="renderList()" class="text-sm px-3 py-1.5 rounded-lg text-white font-medium cursor-pointer" style="background:var(--teal);" data-i18n="btnGo">Go</button>
+        </div>
+      </div>
+
+      <div id="billList" class="space-y-3"></div>
+      <div id="noResults" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="noResults">No matching records.</div>
+      <div id="emptyList" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="emptyList">No records yet. Add your first entry on the Record tab.</div>
     </div>
   </div>
-
-  <div id="billList" class="space-y-3"></div>
-  <div id="noResults" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="noResults">No matching records.</div>
-  <div id="emptyList" class="hidden text-center py-16 text-slate-400 text-sm" data-i18n="emptyList">No records yet. Add your first entry on the Record tab.</div>
 </div>
 
 <!-- Stats Page -->
-<div id="page-stat" class="p-4 hidden fade-in">
-  <div class="flex gap-1.5 p-1 rounded-xl mb-4" style="background:var(--teal-soft);">
-    <button data-period="week" onclick="setStatPeriod('week')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodWeek">Week</button>
-    <button data-period="month" onclick="setStatPeriod('month')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodMonth">Month</button>
-    <button data-period="year" onclick="setStatPeriod('year')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all" data-i18n="periodYear">Year</button>
-  </div>
-  <div class="card card-gradient-teal p-5 mb-4 space-y-2">
-    <p id="statSummaryTitle" class="text-center text-[15px] font-semibold" data-i18n="monthSummary">This Month Summary</p>
-    <p id="statPeriodLabel" class="text-center text-[12px] text-slate-400 mb-2"></p>
-    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalExp">Total Expense</span>：<span id="sumExp" class="text-expense font-bold text-xl font-num">0.00</span></p>
-    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="reimbursedAmt">Reimbursed</span>：<span id="sumReimbDone" style="color:var(--sky);" class="font-bold text-xl font-num">0.00</span></p>
-    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalInc">Total Income</span>：<span id="sumInc" class="text-income font-bold text-xl font-num">0.00</span></p>
-    <p class="text-center text-[11px] text-slate-400 pt-1" data-i18n="expExcludesReimb">Total Expense excludes already-reimbursed bills.</p>
+<div id="page-stat" class="p-4 hidden fade-in space-y-4">
+  <div class="flex gap-1.5 p-1 rounded-xl max-w-md mx-auto" style="background:var(--teal-soft);">
+    <button data-period="week" onclick="setStatPeriod('week')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer" data-i18n="periodWeek">Week</button>
+    <button data-period="month" onclick="setStatPeriod('month')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer" data-i18n="periodMonth">Month</button>
+    <button data-period="year" onclick="setStatPeriod('year')" class="stat-period-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer" data-i18n="periodYear">Year</button>
   </div>
 
-  <div class="card card-gradient-amber p-5 mb-4">
-    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="savingsTitle">Savings</p>
-    <canvas id="chartSavings" height="70"></canvas>
-    <div class="flex justify-between mt-4 pt-3" style="border-top:1px solid var(--line);">
-      <div>
-        <p class="text-[12px] text-slate-400" data-i18n="netSavings">Net Savings</p>
-        <p id="netSavingsVal" class="font-num font-bold text-lg">¥0.00</p>
-      </div>
-      <div class="text-right">
-        <p class="text-[12px] text-slate-400" data-i18n="savingsRate">Savings Rate</p>
-        <p id="savingsRateVal" class="font-num font-bold text-lg">0%</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+    <div class="card card-gradient-teal p-5 space-y-2">
+      <p id="statSummaryTitle" class="text-center text-[15px] font-semibold" data-i18n="monthSummary">This Month Summary</p>
+      <p id="statPeriodLabel" class="text-center text-[12px] text-slate-400 mb-2"></p>
+      <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalExp">Total Expense</span>：<span id="sumExp" class="text-expense font-bold text-xl font-num">0.00</span></p>
+      <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="reimbursedAmt">Reimbursed</span>：<span id="sumReimbDone" style="color:var(--sky);" class="font-bold text-xl font-num">0.00</span></p>
+      <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalInc">Total Income</span>：<span id="sumInc" class="text-income font-bold text-xl font-num">0.00</span></p>
+      <p class="text-center text-[11px] text-slate-400 pt-1" data-i18n="expExcludesReimb">Total Expense excludes already-reimbursed bills.</p>
+    </div>
+
+    <div class="card card-gradient-amber p-5">
+      <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="savingsTitle">Savings</p>
+      <canvas id="chartSavings" height="70"></canvas>
+      <div class="flex justify-between mt-4 pt-3" style="border-top:1px solid var(--line);">
+        <div>
+          <p class="text-[12px] text-slate-400" data-i18n="netSavings">Net Savings</p>
+          <p id="netSavingsVal" class="font-num font-bold text-lg">¥0.00</p>
+        </div>
+        <div class="text-right">
+          <p class="text-[12px] text-slate-400" data-i18n="savingsRate">Savings Rate</p>
+          <p id="savingsRateVal" class="font-num font-bold text-lg">0%</p>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="card card-gradient-amber p-5">
-    <canvas id="pieChartExp"></canvas>
-    <div id="expCatLegend" class="space-y-2 mt-4"></div>
-  </div>
-
-  <div class="card p-5">
-    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="backupTitle">Backup &amp; Data</p>
-    <div class="flex gap-3">
-      <button onclick="exportCSV()" class="flex-1 py-2.5 rounded-xl shadow-sm text-white font-medium" style="background:var(--moss);">
-        <span data-i18n="btnExport">Export CSV</span>
-      </button>
-      <label class="flex-1 py-2.5 rounded-xl text-center cursor-pointer shadow-sm text-white font-medium" style="background:#8A8578;">
-        <span data-i18n="btnImport">Import CSV</span>
-        <input type="file" accept=".csv" id="fileImport" class="hidden">
-      </label>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+    <div class="card card-gradient-amber p-5">
+      <canvas id="pieChartExp"></canvas>
+      <div id="expCatLegend" class="space-y-2 mt-4"></div>
     </div>
-    <p id="backupNote" class="text-[12px] text-slate-400 mt-3"></p>
+
+    <div class="card p-5">
+      <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="backupTitle">Backup &amp; Data</p>
+      <div class="flex gap-3">
+        <button onclick="exportCSV()" class="flex-1 py-2.5 rounded-xl shadow-sm text-white font-medium cursor-pointer" style="background:var(--moss);">
+          <span data-i18n="btnExport">Export CSV</span>
+        </button>
+        <label class="flex-1 py-2.5 rounded-xl text-center cursor-pointer shadow-sm text-white font-medium" style="background:#8A8578;">
+          <span data-i18n="btnImport">Import CSV</span>
+          <input type="file" accept=".csv" id="fileImport" class="hidden">
+        </label>
+      </div>
+      <p id="backupNote" class="text-[12px] text-slate-400 mt-3"></p>
+    </div>
   </div>
 </div>
 
@@ -442,7 +455,7 @@ tailwind.config = {
     </select>
     <select id="e-category" class="w-full border border-slate-200 rounded-xl p-2.5"></select>
 
-    <label class="flex items-center gap-2 text-sm text-slate-500" id="eReimbToggleWrap">
+    <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer" id="eReimbToggleWrap">
       <input type="checkbox" id="eHasReimbCheck" class="w-4 h-4 rounded" style="accent-color:var(--teal);">
       <span data-i18n="labelHasReimb">Has reimbursement?</span>
     </label>
@@ -456,8 +469,8 @@ tailwind.config = {
     <input type="number" step="0.01" id="e-amount" class="w-full border border-slate-200 rounded-xl p-2.5 font-num">
     <input type="text" data-i18n-placeholder="phNote" placeholder="Note" id="e-note" class="w-full border border-slate-200 rounded-xl p-2.5">
     <div class="flex gap-3 pt-1">
-      <button onclick="closeModal()" class="flex-1 py-2.5 bg-slate-200 rounded-xl" data-i18n="btnCancel">Cancel</button>
-      <button onclick="updateBill()" class="flex-1 py-2.5 text-white rounded-xl" style="background:var(--teal);" data-i18n="btnUpdate">Update</button>
+      <button onclick="closeModal()" class="flex-1 py-2.5 bg-slate-200 rounded-xl cursor-pointer" data-i18n="btnCancel">Cancel</button>
+      <button onclick="updateBill()" class="flex-1 py-2.5 text-white rounded-xl cursor-pointer" style="background:var(--teal);" data-i18n="btnUpdate">Update</button>
     </div>
   </div>
 </div>
@@ -467,15 +480,15 @@ tailwind.config = {
   <div class="rounded-2xl w-full max-w-xs p-5 text-center" style="animation:popIn .15s ease-out; background:var(--card-bg); color:var(--ink);">
     <p id="confirmMsg" class="text-[15px] mb-4"></p>
     <div class="flex gap-3">
-      <button id="confirmCancelBtn" class="flex-1 py-2.5 bg-slate-200 rounded-xl font-medium"></button>
-      <button id="confirmOkBtn" class="flex-1 py-2.5 text-white rounded-xl font-medium" style="background:var(--rose);"></button>
+      <button id="confirmCancelBtn" class="flex-1 py-2.5 bg-slate-200 rounded-xl font-medium cursor-pointer"></button>
+      <button id="confirmOkBtn" class="flex-1 py-2.5 text-white rounded-xl font-medium cursor-pointer" style="background:var(--rose);"></button>
     </div>
   </div>
 </div>
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 px-4 py-2.5 rounded-full text-white text-sm font-medium shadow-lg z-50 pointer-events-none opacity-0 transition-opacity" style="background:var(--ink);"></div>
 <div id="undoToast" class="fixed left-1/2 -translate-x-1/2 bottom-6 pl-4 pr-2 py-2 rounded-full text-sm font-medium shadow-lg z-50 opacity-0 pointer-events-none transition-opacity flex items-center gap-3" style="background:var(--ink); color:#fff;">
   <span id="undoToastMsg"></span>
-  <button id="undoToastBtn" class="px-3 py-1.5 rounded-full font-semibold" style="background:rgba(255,255,255,0.18);"></button>
+  <button id="undoToastBtn" class="px-3 py-1.5 rounded-full font-semibold cursor-pointer" style="background:rgba(255,255,255,0.18);"></button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -865,7 +878,7 @@ function renderRecurring(){
       </div>
       <div class="flex items-center gap-3">
         <span class="font-num text-sm ${r.type==='exp'?'text-expense':'text-income'}">${r.type==='exp'?'-':'+'}${sym()}${r.amount.toFixed(2)}</span>
-        <button onclick="delRecurring('${r.id}')" class="text-expense text-sm">${dict.btnDelete}</button>
+        <button onclick="delRecurring('${r.id}')" class="text-expense text-sm cursor-pointer">${dict.btnDelete}</button>
       </div>
     `;
     wrap.appendChild(row);
@@ -1055,9 +1068,9 @@ function renderList(){
           ${item.type==='exp'?'-':'+'}${sym()}${item.amount.toFixed(2)}
         </div>
         <div class="flex gap-2.5 mt-1.5 justify-end">
-          <button onclick="duplicateBill('${item.id}')" class="text-sm" style="color:var(--sky);">${dict.btnDup}</button>
-          <button onclick="openEdit('${item.id}')" class="text-sm" style="color:var(--teal);">Edit</button>
-          <button onclick="del('${item.id}')" class="text-expense text-sm">${dict.btnDelete}</button>
+          <button onclick="duplicateBill('${item.id}')" class="text-sm cursor-pointer" style="color:var(--sky);">${dict.btnDup}</button>
+          <button onclick="openEdit('${item.id}')" class="text-sm cursor-pointer" style="color:var(--teal);">Edit</button>
+          <button onclick="del('${item.id}')" class="text-expense text-sm cursor-pointer">${dict.btnDelete}</button>
         </div>
       </div>
     `;
