@@ -360,15 +360,6 @@ tailwind.config = {
     <p id="noReimbBars" class="hidden text-center text-sm text-slate-400 py-6" data-i18n="noReimbItems">No reimbursement-tracked bills yet.</p>
   </div>
 
-  <div class="flex gap-3 mb-4">
-    <button onclick="exportCSV()" class="flex-1 py-2.5 rounded-xl shadow-sm text-white font-medium" style="background:var(--moss);" data-i18n="btnExport">Export CSV</button>
-    <label class="flex-1 py-2.5 rounded-xl text-center cursor-pointer shadow-sm text-white font-medium" style="background:#8A8578;" data-i18n="btnImport">
-      Import CSV
-      <input type="file" accept=".csv" id="fileImport" class="hidden">
-    </label>
-  </div>
-  <p id="backupNote" class="text-[12px] text-slate-400 mb-3"></p>
-
   <div class="card p-3 space-y-2">
     <input type="text" id="searchInput" data-i18n-placeholder="searchPh" placeholder="Search notes, category, or reimbursement status" class="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
     <div class="flex gap-2 items-center">
@@ -398,9 +389,9 @@ tailwind.config = {
     <p id="statSummaryTitle" class="text-center text-[15px] font-semibold" data-i18n="monthSummary">This Month Summary</p>
     <p id="statPeriodLabel" class="text-center text-[12px] text-slate-400 mb-2"></p>
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalExp">Total Expense</span>：<span id="sumExp" class="text-expense font-bold text-xl font-num">0.00</span></p>
-    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="reimbursedAmt">Reimbursed</span>：<span id="sumReimbDone" class="text-reimbDone font-bold text-xl font-num">0.00</span></p>
-    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="selfPay">Self Paid</span>：<span id="sumSelfPay" style="color:var(--teal);" class="font-bold text-xl font-num">0.00</span></p>
+    <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="reimbursedAmt">Reimbursed</span>：<span id="sumReimbDone" style="color:var(--sky);" class="font-bold text-xl font-num">0.00</span></p>
     <p class="text-center my-1.5 text-[14px]"><span class="text-slate-500" data-i18n="totalInc">Total Income</span>：<span id="sumInc" class="text-income font-bold text-xl font-num">0.00</span></p>
+    <p class="text-center text-[11px] text-slate-400 pt-1" data-i18n="expExcludesReimb">Total Expense excludes already-reimbursed bills.</p>
   </div>
 
   <div class="card card-gradient-amber p-5 mb-4">
@@ -421,6 +412,20 @@ tailwind.config = {
   <div class="card card-gradient-amber p-5">
     <canvas id="pieChartExp"></canvas>
     <div id="expCatLegend" class="space-y-2 mt-4"></div>
+  </div>
+
+  <div class="card p-5">
+    <p class="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-3" data-i18n="backupTitle">Backup &amp; Data</p>
+    <div class="flex gap-3">
+      <button onclick="exportCSV()" class="flex-1 py-2.5 rounded-xl shadow-sm text-white font-medium" style="background:var(--moss);">
+        <span data-i18n="btnExport">Export CSV</span>
+      </button>
+      <label class="flex-1 py-2.5 rounded-xl text-center cursor-pointer shadow-sm text-white font-medium" style="background:#8A8578;">
+        <span data-i18n="btnImport">Import CSV</span>
+        <input type="file" accept=".csv" id="fileImport" class="hidden">
+      </label>
+    </div>
+    <p id="backupNote" class="text-[12px] text-slate-400 mt-3"></p>
   </div>
 </div>
 
@@ -542,14 +547,14 @@ const i18nTexts = {
     phNote:"可选备注",
     optExp:"支出",optInc:"收入",
     reimbNone:"不可报销",reimbPending:"待报销",reimbDone:"已报销",
-    btnSave:"保存记录",btnExport:"导出CSV",btnImport:"导入CSV",
+    btnSave:"保存记录",btnExport:"导出CSV",btnImport:"导入CSV",backupTitle:"备份与数据",
     btnCancel:"取消",btnUpdate:"保存修改",btnDelete:"删除",btnUndo:"撤销",deletedMsg:"记录已删除",
     btnDup:"复制",dupMsg:"已复制该记录",searchPh:"搜索备注、类别或报销状态",btnClear:"清除",btnGo:"确定",noResults:"没有匹配的记录",
     labelRepeatHint:"每月自动添加，直到您删除为止 — 不会影响已记录的月份。",
     monthSummary:"本月汇总",totalExp:"总支出",totalInc:"总收入",
     periodWeek:"本周", periodMonth:"本月", periodYear:"本年",
     weekSummary:"本周汇总", yearSummary:"本年汇总",
-    reimbursedAmt:"已报销金额",selfPay:"个人实际支出",
+    reimbursedAmt:"已报销金额", expExcludesReimb:"总支出不包含已报销的账单。",
     alertEmpty:"请填写日期和有效金额",
     alertSaved:"保存成功",
     alertRecurSaved:"已创建每月重复记账模板",
@@ -583,14 +588,14 @@ const i18nTexts = {
     phNote:"Optional note",
     optExp:"Expense",optInc:"Income",
     reimbNone:"No reimb",reimbPending:"Pending",reimbDone:"Reimbursed",
-    btnSave:"Save",btnExport:"Export CSV",btnImport:"Import CSV",
+    btnSave:"Save",btnExport:"Export CSV",btnImport:"Import CSV",backupTitle:"Backup & Data",
     btnCancel:"Cancel",btnUpdate:"Update",btnDelete:"Delete",btnUndo:"Undo",deletedMsg:"Record deleted",
     btnDup:"Copy",dupMsg:"Entry duplicated",searchPh:"Search notes, category, or reimbursement status",btnClear:"Clear",btnGo:"Go",noResults:"No matching records.",
     labelRepeatHint:"Auto-added each month until you delete it below — won't affect months already recorded.",
     monthSummary:"This Month Summary",totalExp:"Total Expense",totalInc:"Total Income",
     periodWeek:"Week", periodMonth:"Month", periodYear:"Year",
     weekSummary:"This Week Summary", yearSummary:"This Year Summary",
-    reimbursedAmt:"Reimbursed",selfPay:"Self Paid",
+    reimbursedAmt:"Reimbursed", expExcludesReimb:"Total Expense excludes already-reimbursed bills.",
     alertEmpty:"Please fill date and valid amount",
     alertSaved:"Saved successfully",
     alertRecurSaved:"Monthly repeat template created",
@@ -619,17 +624,45 @@ const i18nTexts = {
 };
 
 // colorful per-category accents + icons
-const catColors = ['#0B4F4A','#B3261E','#B8860B','#3F6B3A','#7963B5','#E0744C','#3887BE','#8A5A8C','#4E8C7A','#C08A3E','#7A8471','#8A8578'];
 const catEmoji = {
   "Food":"🍜","Travel":"✈️","Pet Cat":"🐱","Utility":"💡","Transportation":"🚌","Housing":"🏠","Shopping":"🛍️","Entertainment":"🎬","Medical":"💊","Education":"📚","Telecom":"📱","Other":"🗂️",
   "餐饮":"🍜","旅行":"✈️","猫咪":"🐱","水电煤":"💡","交通":"🚌","住房":"🏠","购物":"🛍️","娱乐":"🎬","医疗":"💊","教育":"📚","通讯":"📱","其他":"🗂️",
   "Salary":"💰","Bonus":"🎁","Investment":"📈","Part-time":"🧾","Gift":"🧧","Other Income":"✨",
   "工资":"💰","奖金":"🎁","理财":"📈","兼职":"🧾","红包":"🧧","其他收入":"✨"
 };
+
+// Deterministic, non-repeating, light pastel color per category — index-based
+// (not hashed) so two categories never collide onto the same color.
+function hslToHex(h, s, l){
+  s/=100; l/=100;
+  const k = n => (n + h/30) % 12;
+  const a = s * Math.min(l, 1-l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
+  const toHex = x => Math.round(255*x).toString(16).padStart(2,"0");
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+const catPaletteCache = {};
+const catOrderCache = {};
+function catOrder(lang){
+  if(!catOrderCache[lang]){
+    const dict = i18nTexts[lang];
+    catOrderCache[lang] = [...dict.catExp, ...dict.catInc];
+  }
+  return catOrderCache[lang];
+}
+function catPalette(lang){
+  if(!catPaletteCache[lang]){
+    const names = catOrder(lang);
+    const n = Math.max(names.length, 1);
+    catPaletteCache[lang] = names.map((_, i)=> hslToHex(Math.round(360*i/n), 58, 80));
+  }
+  return catPaletteCache[lang];
+}
 function catColor(name){
-  let h = 0;
-  for(let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) >>> 0;
-  return catColors[h % catColors.length];
+  const names = catOrder(currentLang);
+  const idx = names.indexOf(name);
+  const palette = catPalette(currentLang);
+  return idx === -1 ? "#C9C4B8" : palette[idx];
 }
 function catIcon(name){ return catEmoji[name] || "🗂️"; }
 
@@ -751,7 +784,7 @@ document.querySelectorAll("[data-page]").forEach((btn, idx)=>{
     document.querySelectorAll("[id^='page-']").forEach(p=>p.classList.add("hidden"));
     document.getElementById("page-"+target).classList.remove("hidden");
     if(target==="list"){ renderList(); renderDashboard(); renderBackupNote(); }
-    if(target==="stat") renderStat();
+    if(target==="stat"){ renderStat(); renderBackupNote(); }
     if(target==="add"){ renderRecurring(); }
   }
 })
@@ -890,7 +923,7 @@ function renderDashboard(){
   let sumExp = 0;
   bills.forEach(b=>{
     const dt = new Date(b.date);
-    if(b.type==="exp" && dt.getFullYear()===curYear && dt.getMonth()===curMonth){
+    if(b.type==="exp" && dt.getFullYear()===curYear && dt.getMonth()===curMonth && b.reimb !== "done"){
       sumExp += b.amount;
     }
   });
@@ -940,7 +973,7 @@ function renderDashboard(){
     const h = Math.max(4, Math.round((d.total/maxVal)*72));
     const col = document.createElement("div");
     col.className = "flex-1 flex flex-col items-center justify-end gap-1.5 h-full";
-    const barColor = d.isToday ? 'var(--teal)' : catColors[i % catColors.length] + '33';
+    const barColor = d.isToday ? 'var(--teal)' : 'var(--teal-soft)';
     col.innerHTML = `
       <span class="text-[10px] font-num text-slate-400">${d.total>0? d.total.toFixed(0):''}</span>
       <div class="w-full rounded-t-md bar-fill" style="height:${h}px; background:${barColor};"></div>
@@ -1195,18 +1228,19 @@ function renderStat(){
 
   monthData.forEach(d=>{
     if(d.type==="exp"){
-      sumExp += d.amount;
-      catSum[d.category] += d.amount;
-      if(d.reimb === "done") sumReimbDone += d.amount;
+      if(d.reimb === "done"){
+        sumReimbDone += d.amount;
+      }else{
+        sumExp += d.amount;
+        catSum[d.category] += d.amount;
+      }
     }else{
       sumInc += d.amount;
     }
   })
-  const selfPay = sumExp - sumReimbDone;
   document.getElementById("sumExp").innerText=sumExp.toFixed(2);
   document.getElementById("sumInc").innerText=sumInc.toFixed(2);
   document.getElementById("sumReimbDone").innerText=sumReimbDone.toFixed(2);
-  document.getElementById("sumSelfPay").innerText=selfPay.toFixed(2);
 
   // ---- Savings chart ----
   const netSavings = sumInc - sumExp;
