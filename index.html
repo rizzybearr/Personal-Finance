@@ -895,6 +895,7 @@ async function delRecurring(id){
       recurring = recurring.filter(r=>r.id!==id);
       renderRecurring();
     }catch(e){
+      console.error("delRecurring failed:", e);
       showToast(dict.alertSaveFailed);
     }
   });
@@ -1107,6 +1108,7 @@ async function del(id){
   try{
     await window.fb.deleteBillDoc(currentUid, id);
   }catch(e){
+    console.error("delete bill failed:", e);
     bills.splice(idx,0,removed);
     renderList();
     renderDashboard();
@@ -1121,6 +1123,7 @@ async function del(id){
       const { id: _drop, ...data } = removed;
       await window.fb.setBill(currentUid, id, data);
     }catch(e){
+      console.error("undo delete (restore bill) failed:", e);
       showToast(dict.alertSaveFailed);
     }
   });
