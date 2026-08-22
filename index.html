@@ -890,9 +890,14 @@ function renderRecurring(){
 async function delRecurring(id){
   const dict = i18nTexts[currentLang];
   showConfirm(dict.confirmDelRecurring, async ()=>{
+    console.log("[delRecurring] target id:", id);
+    console.log("[delRecurring] current recurring ids:", recurring.map(r=>r.id));
     try{
       await window.fb.deleteRecurringDoc(currentUid, id);
+      console.log("[delRecurring] Firestore delete resolved OK for id:", id);
+      const before = recurring.length;
       recurring = recurring.filter(r=>r.id!==id);
+      console.log("[delRecurring] local array length before:", before, "after:", recurring.length);
       renderRecurring();
     }catch(e){
       console.error("delRecurring failed:", e);
@@ -1099,8 +1104,14 @@ async function cycleReimb(id){
 
 async function del(id){
   const dict = i18nTexts[currentLang];
+  console.log("[del] target id:", id, typeof id);
+  console.log("[del] current bill ids:", bills.map(b=>b.id));
   const idx = bills.findIndex(x=>x.id===id);
-  if(idx === -1) return;
+  console.log("[del] findIndex result:", idx);
+  if(idx === -1){
+    console.warn("[del] no matching bill found for id — nothing will happen");
+    return;
+  }
   const removed = bills[idx];
   bills.splice(idx,1);
   renderList();
